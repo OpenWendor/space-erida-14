@@ -1,5 +1,6 @@
 using System.Linq;
 using System.Numerics;
+using Content.Client._Void.PriorityConsole;
 using Content.Client.CrewManifest;
 using Content.Client.GameTicking.Managers;
 using Content.Client.Lobby;
@@ -11,6 +12,7 @@ using Content.Shared.Roles;
 using Content.Shared.StatusIcon;
 using Robust.Client.Console;
 using Robust.Client.GameObjects;
+using Robust.Client.Graphics;
 using Robust.Client.UserInterface;
 using Robust.Client.UserInterface.Controls;
 using Robust.Client.UserInterface.CustomControls;
@@ -36,6 +38,7 @@ namespace Content.Client.LateJoin
         private readonly ClientGameTicker _gameTicker;
         private readonly SpriteSystem _sprites;
         private readonly CrewManifestSystem _crewManifest;
+        private readonly ClientPriorityHighlightSystem _priorityHighlights;
         private readonly ISawmill _sawmill;
 
         private readonly Dictionary<NetEntity, Dictionary<string, List<JobButton>>> _jobButtons = new();
@@ -51,6 +54,7 @@ namespace Content.Client.LateJoin
             _sprites = _entitySystem.GetEntitySystem<SpriteSystem>();
             _crewManifest = _entitySystem.GetEntitySystem<CrewManifestSystem>();
             _gameTicker = _entitySystem.GetEntitySystem<ClientGameTicker>();
+            _priorityHighlights = _entitySystem.GetEntitySystem<ClientPriorityHighlightSystem>();
             _sawmill = _logManager.GetSawmill("latejoin.panel");
 
             Title = Loc.GetString("late-join-gui-title");
@@ -75,6 +79,13 @@ namespace Content.Client.LateJoin
             };
 
             _gameTicker.LobbyJobsAvailableUpdated += JobsAvailableUpdated;
+            _priorityHighlights.HighlightsUpdated += ApplyHighlights;
+            _configManager.OnValueChanged(CCVars.VoidPriorityHighlightColor, OnHighlightColorChanged);
+        }
+
+        private void OnHighlightColorChanged(string _)
+        {
+            ApplyHighlights();
         }
 
         private void RebuildUI()
@@ -294,6 +305,47 @@ namespace Content.Client.LateJoin
                     }
                 }
             }
+
+            ApplyHighlights();
+        }
+
+        private void ApplyHighlights()
+        {
+            var color = Color.TryFromHex(_configManager.GetCVar(CCVars.VoidPriorityHighlightColor)) ?? Color.LimeGreen;
+
+            foreach (var (station, jobs) in _jobButtons)
+            {
+                foreach (var (jobId, buttons) in jobs)
+                {
+                    var highlighted = _priorityHighlights.IsHighlighted(station, jobId);
+                    foreach (var button in buttons)
+                    {
+                        if (highlighted)
+                        {
+                            button.StyleBoxOverride = new StyleBoxFlat
+                            {
+                                BackgroundColor = color,
+                                ContentMarginTopOverride = 4,
+                                ContentMarginBottomOverride = 4,
+                                ContentMarginLeftOverride = 4,
+                                ContentMarginRightOverride = 4,
+                            };
+                            button.JobLabel.FontColorOverride = ContrastText(color);
+                        }
+                        else
+                        {
+                            button.StyleBoxOverride = null;
+                            button.JobLabel.FontColorOverride = null;
+                        }
+                    }
+                }
+            }
+        }
+
+        private static Color ContrastText(Color background)
+        {
+            var luminance = 0.299f * background.R + 0.587f * background.G + 0.114f * background.B;
+            return luminance > 0.55f ? Color.Black : Color.White;
         }
 
         private void JobsAvailableUpdated(IReadOnlyDictionary<NetEntity, Dictionary<ProtoId<JobPrototype>, int?>> updatedJobs)
@@ -332,6 +384,8 @@ namespace Content.Client.LateJoin
             {
                 _jobRequirements.Updated -= RebuildUI;
                 _gameTicker.LobbyJobsAvailableUpdated -= JobsAvailableUpdated;
+                _priorityHighlights.HighlightsUpdated -= ApplyHighlights;
+                _configManager.UnsubValueChanged(CCVars.VoidPriorityHighlightColor, OnHighlightColorChanged);
                 _jobButtons.Clear();
                 _jobCategories.Clear();
             }

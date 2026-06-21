@@ -1,0 +1,37 @@
+- type: entity
+  parent: BaseComputerAiAccess
+  id: ComputerPriorityConsole
+  name: priority console
+  description: A console used by command to mark which station roles are most needed right now.
+  components:
+  - type: Sprite
+    layers:
+    - map: ["computerLayerBody"]
+      state: computer
+    - map: ["computerLayerKeyboard"]
+      state: generic_keyboard
+    - map: ["computerLayerScreen"]
+      state: comm
+    - map: ["computerLayerKeys"]
+      state: generic_keys
+    - map: [ "enum.WiresVisualLayers.MaintenancePanel" ]
+      state: generic_panel_open
+  - type: AccessReader
+    access: [[ "Command" ], [ "CentralCommand" ]]
+  - type: PriorityConsole
+  - type: ActivatableUI
+    key: enum.PriorityConsoleUiKey.Key
+  - type: UserInterface
+    interfaces:
+      enum.PriorityConsoleUiKey.Key:
+        type: PriorityConsoleBoundUserInterface
+      enum.WiresUiKey.Key:
+        type: WiresBoundUserInterface
+  - type: Computer
+    board: PriorityConsoleCircuitboard
+  - type: PointLight
+    radius: 1.5
+    energy: 4.0
+    color: "#3FB950"
+  - type: Damageable
+    damageModifierSet: StructuralMetallicStrong

@@ -1,0 +1,10 @@
+- type: entity
+  parent: [ BaseComputerCircuitboard, BaseCommandContraband ]
+  id: PriorityConsoleCircuitboard
+  name: priority console board
+  description: A computer printed circuit board for a priority console.
+  components:
+    - type: Sprite
+      state: cpu_command
+    - type: ComputerBoard
+      prototype: ComputerPriorityConsole
