@@ -2265,11 +2265,13 @@
   suffix: bacchus blessing
   description: You didn't think it was possible for a liquid to be so utterly revolting. Are you sure about this...?
   components:
-  - type: Solution
-    solution:
+  - type: SolutionContainerManager
+    solutions:
+      drink:
+        maxVol: 30
         reagents:
         - ReagentId: BacchusBlessing
-          Quantity: 60
+          Quantity: 30
   - type: Icon
     sprite: Objects/Consumable/Drinks/bacchusblessing.rsi
     state: icon

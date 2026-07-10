@@ -1,5 +1,7 @@
 using System.IO;
 using System.Linq;
+using Content.Client._Goobstation.Wizard.Systems;
+using Content.Shared._Goobstation.Wizard.SpellCards;
 using Content.Shared.Actions;
 using Content.Shared.Actions.Components;
 using Content.Shared.Charges.Systems;
@@ -34,6 +36,7 @@ namespace Content.Client.Actions
         [Dependency] private IResourceManager _resources = default!;
         [Dependency] private MetaDataSystem _metaData = default!;
         [Dependency] private ISerializationManager _serialization = default!;
+        [Dependency] private readonly ActionTargetMarkSystem _mark = default!;
 
         public event Action<EntityUid>? OnActionAdded;
         public event Action<EntityUid>? OnActionRemoved;
@@ -335,6 +338,9 @@ namespace Content.Client.Actions
                 targetEnt = entityUid;
             }
 
+            if (HasComp<LockOnMarkActionComponent>(uid) && Exists(_mark.Target))
+                targetEnt = _mark.Target.Value; // Goobstation
+
             if (action.ClientExclusive)
             {
                 // TODO: abstract away from single event or maybe just RaiseLocalEvent?
@@ -361,6 +367,11 @@ namespace Content.Client.Actions
 
             if (args.Input.EntityUid is not { Valid: true } entity)
                 return;
+
+            // Goob edit start
+            if (HasComp<LockOnMarkActionComponent>(ent) && Exists(_mark.Target))
+                entity = _mark.Target.Value;
+            // Goob edit end
 
             // let world target component handle it
             var (uid, comp) = ent;
