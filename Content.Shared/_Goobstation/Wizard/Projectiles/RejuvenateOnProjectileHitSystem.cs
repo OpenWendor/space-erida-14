@@ -1,12 +1,5 @@
-// SPDX-FileCopyrightText: 2025 Aiden <28298836+Aidenkrz@users.noreply.github.com>
-// SPDX-FileCopyrightText: 2025 Aviu00 <93730715+Aviu00@users.noreply.github.com>
-// SPDX-FileCopyrightText: 2025 Misandry <mary@thughunt.ing>
-// SPDX-FileCopyrightText: 2025 gus <august.eymann@gmail.com>
-//
-// SPDX-License-Identifier: AGPL-3.0-or-later
-
-using Content.Shared._Shitmed.Targeting;
 using Content.Shared.Damage;
+using Content.Shared.Damage.Systems;
 using Content.Shared.Mobs.Systems;
 using Content.Shared.Projectiles;
 using Content.Shared.Rejuvenate;
@@ -15,12 +8,12 @@ using Content.Shared.Whitelist;
 
 namespace Content.Shared._Goobstation.Wizard.Projectiles;
 
-public sealed class RejuvenateOnProjectileHitSystem : EntitySystem
+public sealed partial class RejuvenateOnProjectileHitSystem : EntitySystem
 {
-    [Dependency] private readonly EntityWhitelistSystem _whitelist = default!;
-    [Dependency] private readonly DamageableSystem _damageable = default!;
-    [Dependency] private readonly MobStateSystem _mobState = default!;
-    [Dependency] private readonly TagSystem _tag = default!;
+    [Dependency] private EntityWhitelistSystem _whitelist = default!;
+    [Dependency] private DamageableSystem _damageable = default!;
+    [Dependency] private MobStateSystem _mobState = default!;
+    [Dependency] private TagSystem _tag = default!;
 
     public override void Initialize()
     {
@@ -47,7 +40,7 @@ public sealed class RejuvenateOnProjectileHitSystem : EntitySystem
         if (rejuvenate)
         {
             if (!_tag.HasTag(target, comp.SoulTappedTag))
-                RaiseLocalEvent(target, new RejuvenateEvent(false, false));
+                RaiseLocalEvent(target, new RejuvenateEvent());
             return;
         }
 
@@ -55,8 +48,7 @@ public sealed class RejuvenateOnProjectileHitSystem : EntitySystem
         {
             _damageable.TryChangeDamage(target,
                 comp.Damage,
-                true,
-                targetPart: TargetBodyPart.Chest);
+                true);
         }
     }
 }

@@ -1,16 +1,7 @@
-// SPDX-FileCopyrightText: 2025 Aiden <28298836+Aidenkrz@users.noreply.github.com>
-// SPDX-FileCopyrightText: 2025 Aidenkrz <aiden@djkraz.com>
-// SPDX-FileCopyrightText: 2025 Aviu00 <93730715+Aviu00@users.noreply.github.com>
-// SPDX-FileCopyrightText: 2025 Misandry <mary@thughunt.ing>
-// SPDX-FileCopyrightText: 2025 gus <august.eymann@gmail.com>
-//
-// SPDX-License-Identifier: AGPL-3.0-or-later
-
-using Content.Goobstation.Common.Effects;
-using Content.Shared._Goobstation.Wizard.FadingTimedDespawn;
-using Content.Shared._Shitmed.Targeting;
+using Content.Shared._Goobstation.FadingTimedDespawn;
 using Content.Shared.Damage;
 using Content.Shared.Damage.Components;
+using Content.Shared.Damage.Systems;
 using Content.Shared.Electrocution;
 using Content.Shared.Examine;
 using Content.Shared.Eye.Blinding.Components;
@@ -30,21 +21,20 @@ using Robust.Shared.Timing;
 
 namespace Content.Shared._Goobstation.Wizard.Traps;
 
-public abstract class SharedWizardTrapsSystem : EntitySystem
+public abstract partial class SharedWizardTrapsSystem : EntitySystem
 {
-    [Dependency] protected readonly SharedAppearanceSystem Appearance = default!;
-    [Dependency] private   readonly SharedTransformSystem _transform = default!;
-    [Dependency] private   readonly SharedPopupSystem _popup = default!;
-    [Dependency] private   readonly SharedMindSystem _mind = default!;
-    [Dependency] private   readonly SparksSystem _spark = default!;
-    [Dependency] private   readonly SharedElectrocutionSystem _electrocution = default!;
-    [Dependency] private   readonly SharedStunSystem _stun = default!;
-    [Dependency] private   readonly StatusEffectsSystem _status = default!;
-    [Dependency] private   readonly DamageableSystem _damageable = default!;
-    [Dependency] private   readonly SharedAudioSystem _audio = default!;
-    [Dependency] private   readonly EntityWhitelistSystem _whitelist = default!;
-    [Dependency] private   readonly INetManager _net = default!;
-    [Dependency] private   readonly ISharedPlayerManager _player = default!;
+    [Dependency] protected SharedAppearanceSystem Appearance = default!;
+    [Dependency] private SharedTransformSystem _transform = default!;
+    [Dependency] private SharedPopupSystem _popup = default!;
+    [Dependency] private SharedMindSystem _mind = default!;
+    [Dependency] private SharedElectrocutionSystem _electrocution = default!;
+    [Dependency] private SharedStunSystem _stun = default!;
+    [Dependency] private StatusEffectsSystem _status = default!;
+    [Dependency] private DamageableSystem _damageable = default!;
+    [Dependency] private SharedAudioSystem _audio = default!;
+    [Dependency] private EntityWhitelistSystem _whitelist = default!;
+    [Dependency] private INetManager _net = default!;
+    [Dependency] private ISharedPlayerManager _player = default!;
 
     public override void Initialize()
     {
@@ -63,7 +53,7 @@ public abstract class SharedWizardTrapsSystem : EntitySystem
 
     private void OnDamageTriggered(Entity<DamageTrapComponent> ent, ref TrapTriggeredEvent args)
     {
-        _damageable.TryChangeDamage(args.Victim, ent.Comp.Damage, true, targetPart: TargetBodyPart.Feet);
+        _damageable.TryChangeDamage(args.Victim, ent.Comp.Damage, true);
         if (_net.IsServer && ent.Comp.SpawnedEntity is { } toSpawn)
             Spawn(toSpawn, _transform.GetMapCoordinates(ent));
     }
@@ -135,16 +125,6 @@ public abstract class SharedWizardTrapsSystem : EntitySystem
             _stun.TryUpdateParalyzeDuration(args.OtherEntity, comp.StunTime);
 
         RaiseLocalEvent(uid, new TrapTriggeredEvent(args.OtherEntity));
-
-        if (comp.Sparks)
-        {
-            _spark.DoSparks(Transform(uid).Coordinates,
-                comp.MinSparks,
-                comp.MaxSparks,
-                comp.MinVelocity,
-                comp.MaxVelocity,
-                comp.TriggerSound == null);
-        }
 
         _audio.PlayPredicted(comp.TriggerSound, args.OtherEntity, args.OtherEntity);
 
