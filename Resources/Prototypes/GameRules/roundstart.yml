@@ -30,8 +30,6 @@
     rules:
     - id: Thief
       prob: 0.5
-    - id: SubWizard
-      prob: 0.05
     - id: SubXenoborgs
       prob: 0.05
 
@@ -54,8 +52,6 @@
     rules:
     - id: Thief
       prob: 0.5
-    - id: SubWizard
-      prob: 0.05
 
 - type: entity
   parent: BaseGameRule
@@ -260,35 +256,6 @@
   parent: BaseGameRule
   components:
   - type: SecretRule
-
-- type: entity
-  abstract: true
-  parent: BaseGameRule
-  id: BaseWizardRule
-  components:
-  - type: AntagObjectives
-    objectives:
-    - WizardSurviveObjective
-    - WizardDemonstrateObjective
-  - type: LoadMapRule
-    mapPath: /Maps/Nonstations/wizardsden.yml
-  - type: RuleGrids
-  - type: AntagSelection
-    agentName: wizard-round-end-name
-    antags:
-    - !type:FixedAntagCount
-      proto: Wizard
-  - type: AntagLoadProfileRule
-    speciesOverride: Human
-
-- type: entity
-  parent: [ BaseWizardRule, BaseRoundstartAntagRule ]
-  id: Wizard
-  components:
-  - type: GameRule
-    minPlayers: 10
-  - type: DynamicRuleCost
-    cost: 150
 
 - type: entity
   id: Zombie

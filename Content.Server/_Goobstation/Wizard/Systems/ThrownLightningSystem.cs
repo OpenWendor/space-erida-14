@@ -1,3 +1,14 @@
+// SPDX-FileCopyrightText: 2025 Aiden <28298836+Aidenkrz@users.noreply.github.com>
+// SPDX-FileCopyrightText: 2025 Aviu00 <93730715+Aviu00@users.noreply.github.com>
+// SPDX-FileCopyrightText: 2025 Misandry <mary@thughunt.ing>
+// SPDX-FileCopyrightText: 2025 NazrinNya <137837419+NazrinNya@users.noreply.github.com>
+// SPDX-FileCopyrightText: 2025 ReserveBot <211949879+ReserveBot@users.noreply.github.com>
+// SPDX-FileCopyrightText: 2025 Svarshik <96281939+lexaSvarshik@users.noreply.github.com>
+// SPDX-FileCopyrightText: 2025 gus <august.eymann@gmail.com>
+// SPDX-FileCopyrightText: 2025 nazrin <tikufaev@outlook.com>
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 using Content.Goobstation.Common.Effects;
 using Content.Server._Goobstation.Wizard.Components;
 using Content.Server.Electrocution;
@@ -12,7 +23,6 @@ namespace Content.Server._Goobstation.Wizard.Systems;
 public sealed class ThrownLightningSystem : EntitySystem
 {
     [Dependency] private readonly ElectrocutionSystem _electrocution = default!;
-    [Dependency] private readonly SharedStaminaSystem _stamina = default!;
     [Dependency] private readonly SpellsSystem _spells = default!;
     [Dependency] private readonly SparksSystem _sparks = default!;
 
@@ -21,7 +31,7 @@ public sealed class ThrownLightningSystem : EntitySystem
         base.Initialize();
 
         SubscribeLocalEvent<ThrownLightningComponent, ThrowDoHitEvent>(OnHit);
-        SubscribeLocalEvent<ThrownLightningComponent, ThrowEvent>(OnThrown);
+        SubscribeLocalEvent<ThrownLightningComponent, ThrownEvent>(OnThrown);
         SubscribeLocalEvent<ThrownLightningComponent, StopThrowEvent>(OnStopThrow);
     }
 
@@ -37,7 +47,7 @@ public sealed class ThrownLightningSystem : EntitySystem
         Dirty(ent.Owner, trail);
     }
 
-    private void OnThrown(Entity<ThrownLightningComponent> ent, ref ThrowEvent args)
+    private void OnThrown(Entity<ThrownLightningComponent> ent, ref ThrownEvent args)
     {
         if (TryComp(ent, out TrailComponent? trail))
         {
@@ -57,10 +67,15 @@ public sealed class ThrownLightningSystem : EntitySystem
         if (Deleting(ent))
             return;
 
+        if (args.Handled)
+            return;
+
+        args.Handled = true;
+
         if (!TryComp(args.Target, out StatusEffectsComponent? status))
             return;
 
-        _electrocution.TryDoElectrocution(args.Target, ent, 1, ent.Comp.StunTime, true, 1f, status, true);
+        _electrocution.TryDoElectrocution(args.Target, ent, 2, ent.Comp.StunTime, true, 0.5f, 1f, status, true); //Reserve electrocutionChance
         _sparks.DoSparks(Transform(ent).Coordinates);
     }
 

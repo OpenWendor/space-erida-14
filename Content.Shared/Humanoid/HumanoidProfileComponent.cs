@@ -11,7 +11,7 @@ namespace Content.Shared.Humanoid;
 /// Dictates what species and age this character "looks like"
 /// </summary>
 [NetworkedComponent, RegisterComponent, AutoGenerateComponentState(true)]
-[Access(typeof(HumanoidProfileSystem))]
+[Access(typeof(HumanoidProfileSystem), Other = AccessPermissions.ReadWrite)]
 public sealed partial class HumanoidProfileComponent : Component
 {
     [DataField, AutoNetworkedField]

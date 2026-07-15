@@ -1,3 +1,11 @@
+// SPDX-FileCopyrightText: 2025 Aiden <28298836+Aidenkrz@users.noreply.github.com>
+// SPDX-FileCopyrightText: 2025 Aviu00 <93730715+Aviu00@users.noreply.github.com>
+// SPDX-FileCopyrightText: 2025 Misandry <mary@thughunt.ing>
+// SPDX-FileCopyrightText: 2025 gus <august.eymann@gmail.com>
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
+using Content.Shared._Goobstation.Wizard.TimeStop;
 using Content.Shared.Interaction;
 using Robust.Shared.Network;
 using Robust.Shared.Physics;
@@ -6,20 +14,22 @@ using Robust.Shared.Physics.Systems;
 
 namespace Content.Shared._Goobstation.Wizard.Projectiles;
 
-public sealed partial class HomingProjectileSystem : EntitySystem
+public sealed class HomingProjectileSystem : EntitySystem
 {
-    [Dependency] private SharedTransformSystem _transform = default!;
-    [Dependency] private RotateToFaceSystem _rotate = default!;
-    [Dependency] private SharedPhysicsSystem _physics = default!;
-    [Dependency] private INetManager _net = default!;
+    [Dependency] private readonly SharedTransformSystem _transform = default!;
+    [Dependency] private readonly RotateToFaceSystem _rotate = default!;
+    [Dependency] private readonly SharedPhysicsSystem _physics = default!;
+    [Dependency] private readonly INetManager _net = default!;
 
     private EntityQuery<TransformComponent> _xformQuery;
+    private EntityQuery<FrozenComponent> _frozenQuery;
 
     public override void Initialize()
     {
         base.Initialize();
 
         _xformQuery = GetEntityQuery<TransformComponent>();
+        _frozenQuery = GetEntityQuery<FrozenComponent>();
     }
 
     public override void Update(float frameTime)
@@ -40,6 +50,9 @@ public sealed partial class HomingProjectileSystem : EntitySystem
                 continue;
 
             homing.HomingAccumulator = homing.HomingTime;
+
+            if (_frozenQuery.HasComp(uid))
+                continue;
 
             if (!_xformQuery.TryComp(homing.Target, out var targetXform))
                 continue;

@@ -924,6 +924,16 @@ public abstract partial class SharedActionsSystem : EntitySystem
         }
     }
 
+    // Goobstation start
+    public virtual void SaveActions(EntityUid performer)
+    {
+    }
+
+    public virtual void LoadActions(EntityUid performer)
+    {
+    }
+    // Goobstation end
+
     #region EquipHandlers
     private void OnDidEquip(Entity<ActionsComponent> ent, ref DidEquipEvent args)
     {
@@ -937,6 +947,8 @@ public abstract partial class SharedActionsSystem : EntitySystem
             return;
 
         GrantActions((ent, ent), ev.Actions, args.Equipment);
+
+        LoadActions(args.EquipTarget); // Goobstation
     }
 
     private void OnHandEquipped(Entity<ActionsComponent> ent, ref DidEquipHandEvent args)
@@ -951,6 +963,8 @@ public abstract partial class SharedActionsSystem : EntitySystem
             return;
 
         GrantActions((ent, ent), ev.Actions, args.Equipped);
+
+        LoadActions(args.User); // Goobstation
     }
 
     private void OnDidUnequip(EntityUid uid, ActionsComponent component, DidUnequipEvent args)
@@ -963,6 +977,9 @@ public abstract partial class SharedActionsSystem : EntitySystem
         {
             var ev = new GetItemActionsEvent(_actionContainer, args.EquipTarget, args.Equipment, isEquipping: false); // Lavaland Change - added false for isEquipping
             RaiseLocalEvent(args.Equipment, ev);
+
+            if (ev.Actions.Count > 0)
+                SaveActions(uid);
         }
         // Goobstation end
 
@@ -979,6 +996,9 @@ public abstract partial class SharedActionsSystem : EntitySystem
         {
             var ev = new GetItemActionsEvent(_actionContainer, args.User, args.Unequipped, isEquipping: false); // Lavaland Change - added false for isEquipping
             RaiseLocalEvent(args.Unequipped, ev);
+
+            if (ev.Actions.Count > 0)
+                SaveActions(uid);
         }
         // Goobstation end
 

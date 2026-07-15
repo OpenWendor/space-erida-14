@@ -631,4 +631,16 @@ public sealed partial class PullingSystem : EntitySystem
         targetComp.PullingAlert = source.Comp.PullingAlert;
         Dirty(target, targetComp);
     }
+
+    // Goobstation start
+    public void StopAllPulls(EntityUid uid, bool stopPullable = true, bool stopPuller = true)
+    {
+        if (stopPullable && TryComp<PullableComponent>(uid, out var pullable) && IsPulled(uid, pullable))
+            TryStopPull(uid, pullable);
+
+        if (stopPuller && TryComp<PullerComponent>(uid, out var puller) &&
+            TryComp(puller.Pulling, out PullableComponent? pullableEnt))
+            TryStopPull(puller.Pulling.Value, pullableEnt);
+    }
+    // Goobstation end
 }

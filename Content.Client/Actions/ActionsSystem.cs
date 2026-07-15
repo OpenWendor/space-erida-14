@@ -1,6 +1,7 @@
 using System.IO;
 using System.Linq;
 using Content.Client._Goobstation.Wizard.Systems;
+using Content.Shared._Goobstation.Wizard;
 using Content.Shared._Goobstation.Wizard.SpellCards;
 using Content.Shared.Actions;
 using Content.Shared.Actions.Components;
@@ -36,7 +37,7 @@ namespace Content.Client.Actions
         [Dependency] private IResourceManager _resources = default!;
         [Dependency] private MetaDataSystem _metaData = default!;
         [Dependency] private ISerializationManager _serialization = default!;
-        [Dependency] private readonly ActionTargetMarkSystem _mark = default!;
+        [Dependency] private ActionTargetMarkSystem _mark = default!;
 
         public event Action<EntityUid>? OnActionAdded;
         public event Action<EntityUid>? OnActionRemoved;
@@ -45,6 +46,11 @@ namespace Content.Client.Actions
         public event Action? UnlinkActions;
         public event Action? ClearAssignments;
         public event Action<List<SlotAssignment>>? AssignSlot;
+
+        // Goobstation start
+        public event Action<EntityUid>? ActionsSaved;
+        public event Action<EntityUid>? ActionsLoaded;
+        // Goobstation end
 
         private readonly List<EntityUid> _removed = new();
         private readonly List<Entity<ActionComponent>> _added = new();
@@ -63,6 +69,16 @@ namespace Content.Client.Actions
 
             SubscribeLocalEvent<EntityTargetActionComponent, ActionTargetAttemptEvent>(OnEntityTargetAttempt);
             SubscribeLocalEvent<WorldTargetActionComponent, ActionTargetAttemptEvent>(OnWorldTargetAttempt);
+
+            SubscribeNetworkEvent<LoadActionsEvent>(OnLoadActions); // Goobstation
+        }
+
+        private void OnLoadActions(LoadActionsEvent msg, EntitySessionEventArgs args) // Goobstation
+        {
+            if (args.SenderSession != _playerManager.LocalSession)
+                return;
+
+            ActionsLoaded?.Invoke(GetEntity(msg.Entity));
         }
 
 
@@ -158,6 +174,24 @@ namespace Content.Client.Actions
             ActionsUpdated?.Invoke();
         }
 
+        // Goobstation start
+        public override void SaveActions(EntityUid performer)
+        {
+            if (_playerManager.LocalEntity != performer)
+                return;
+
+            ActionsSaved?.Invoke(performer);
+        }
+
+        public override void LoadActions(EntityUid performer)
+        {
+            if (_playerManager.LocalEntity != performer)
+                return;
+
+            ActionsLoaded?.Invoke(performer);
+        }
+        // Goobstation end
+
         public IEnumerable<Entity<ActionComponent>> GetClientActions()
         {
             if (_playerManager.LocalEntity is not { } user)
@@ -169,10 +203,12 @@ namespace Content.Client.Actions
         private void OnPlayerAttached(EntityUid uid, ActionsComponent component, LocalPlayerAttachedEvent args)
         {
             LinkAllActions(component);
+            ActionsLoaded?.Invoke(uid); // Goobstation
         }
 
         private void OnPlayerDetached(EntityUid uid, ActionsComponent component, LocalPlayerDetachedEvent? args = null)
         {
+            ActionsSaved?.Invoke(uid); // Goobstation
             UnlinkAllActions();
         }
 

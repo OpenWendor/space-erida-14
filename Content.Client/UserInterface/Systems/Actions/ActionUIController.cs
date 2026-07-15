@@ -57,6 +57,11 @@ public sealed partial class ActionUIController : UIController, IOnStateChanged<G
     private readonly TextureRect _dragShadow;
     private ActionsWindow? _window;
 
+    // Goobstation start
+    private readonly Dictionary<EntityUid, List<EntityUid?>> _savedActions = new();
+    private ISawmill _sawmill = default!;
+    // Goobstation end
+
     private ActionsBar? ActionsBar => UIManager.GetActiveUIWidgetOrNull<ActionsBar>();
     private MenuButton? ActionButton => UIManager.GetActiveUIWidgetOrNull<MenuBar.Widgets.GameTopMenuBar>()?.ActionButton;
 
@@ -84,6 +89,8 @@ public sealed partial class ActionUIController : UIController, IOnStateChanged<G
     {
         base.Initialize();
 
+        _sawmill = Logger.GetSawmill("action_ui_controller"); // Goobstation
+
         var gameplayStateLoad = UIManager.GetUIController<GameplayStateLoadController>();
         gameplayStateLoad.OnScreenLoad += OnScreenLoad;
         gameplayStateLoad.OnScreenUnload += OnScreenUnload;
@@ -106,6 +113,8 @@ public sealed partial class ActionUIController : UIController, IOnStateChanged<G
             _actionsSystem.OnActionAdded += OnActionAdded;
             _actionsSystem.OnActionRemoved += OnActionRemoved;
             _actionsSystem.ActionsUpdated += OnActionsUpdated;
+            _actionsSystem.ActionsSaved += OnActionsSaved; // Goobstation
+            _actionsSystem.ActionsLoaded += OnActionsLoaded; // Goobstation
         }
 
         UpdateFilterLabel();
@@ -226,6 +235,8 @@ public sealed partial class ActionUIController : UIController, IOnStateChanged<G
             _actionsSystem.OnActionAdded -= OnActionAdded;
             _actionsSystem.OnActionRemoved -= OnActionRemoved;
             _actionsSystem.ActionsUpdated -= OnActionsUpdated;
+            _actionsSystem.ActionsSaved -= OnActionsSaved; // Goobstation
+            _actionsSystem.ActionsLoaded -= OnActionsLoaded; // Goobstation
         }
 
         CommandBinds.Unregister<ActionUIController>();
@@ -280,6 +291,93 @@ public sealed partial class ActionUIController : UIController, IOnStateChanged<G
         if (_actionsSystem != null)
             _container?.SetActionData(_actionsSystem, _actions.ToArray());
     }
+
+    // Goobstation start
+    private void OnActionsSaved(EntityUid entity)
+    {
+        if (entity == default)
+            return;
+
+        if (_actions.Count == 0)
+            return;
+
+        _savedActions[entity] = new(_actions);
+        _sawmill.Debug($"Saved actions for entity {entity}");
+    }
+
+    private void OnActionsLoaded(EntityUid entity)
+    {
+        _sawmill.Debug($"Trying to load actions for entity {entity}");
+        if (entity == default)
+        {
+            _savedActions.Remove(entity);
+            return;
+        }
+
+        if (_playerManager.LocalEntity == null)
+            return;
+        var localEntity = _playerManager.LocalEntity.Value;
+
+        if (!_savedActions.TryGetValue(entity, out var savedActions))
+            return;
+        if (savedActions.Count == 0 || _actions.Count == 0 || _actions.SequenceEqual(savedActions))
+            return;
+        var metaQuery = EntityManager.GetEntityQuery<MetaDataComponent>();
+        var actionQuery = EntityManager.GetEntityQuery<ActionComponent>();
+
+        (EntityUid?, Type)? GetActionContainerAndType(EntityUid action)
+        {
+            if (actionQuery.TryComp(action, out var actionComp))
+                return (actionComp.Container, typeof(ActionComponent));
+            return null;
+        }
+
+        bool IdsEqual(EntityUid? a, EntityUid? b)
+        {
+            if (a == null && b == null)
+                return true;
+            if (a == null || b == null)
+                return false;
+            if (a.Value == b.Value)
+                return true;
+            if (entity == localEntity)
+                return false;
+            if (!metaQuery.TryGetComponent(a.Value, out var metaA) ||
+                !metaQuery.TryGetComponent(b.Value, out var metaB))
+                return false;
+            if (metaA.EntityPrototype?.ID != metaB.EntityPrototype?.ID)
+                return false;
+
+            var containerAndTypeA = GetActionContainerAndType(a.Value);
+            var containerAndTypeB = GetActionContainerAndType(b.Value);
+
+            if (containerAndTypeA == null || containerAndTypeB == null)
+                return false;
+            var (containerA, typeA) = containerAndTypeA.Value;
+            var (containerB, typeB) = containerAndTypeB.Value;
+            if (typeA != typeB)
+                return false;
+            if (containerA == containerB)
+                return true;
+            return containerA == localEntity && containerB == null || containerA == null && containerB == localEntity;
+        }
+
+        List<EntityUid?> newActions = new();
+        foreach (var savedAction in savedActions)
+        {
+            if (_actions.FirstOrDefault(x => IdsEqual(x, savedAction)) is { } action)
+            {
+                newActions.Add(action);
+            }
+        }
+        var addedActions = _actions.Except(newActions);
+        _actions.Clear();
+        _actions.AddRange(newActions.Concat(addedActions));
+        OnActionsUpdated();
+        _savedActions.Remove(entity);
+        _sawmill.Debug($"Loaded actions for entity {entity}");
+    }
+    // Goobstation end
 
     private void ActionButtonPressed(ButtonEventArgs args)
     {

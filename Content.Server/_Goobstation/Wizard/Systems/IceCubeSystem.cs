@@ -1,3 +1,10 @@
+// SPDX-FileCopyrightText: 2025 Aiden <28298836+Aidenkrz@users.noreply.github.com>
+// SPDX-FileCopyrightText: 2025 Aviu00 <93730715+Aviu00@users.noreply.github.com>
+// SPDX-FileCopyrightText: 2025 Misandry <mary@thughunt.ing>
+// SPDX-FileCopyrightText: 2025 gus <august.eymann@gmail.com>
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 using System.Linq;
 using Content.Server._Goobstation.Wizard.Components;
 using Content.Server.Temperature.Components;
@@ -9,7 +16,6 @@ using Content.Shared.Damage.Events;
 using Content.Shared.Damage.Systems;
 using Content.Shared.Projectiles;
 using Content.Shared.Temperature;
-using Content.Shared.Temperature.Components;
 using Content.Shared.Whitelist;
 using Robust.Shared.Physics;
 using Robust.Shared.Physics.Collision.Shapes;
@@ -19,14 +25,14 @@ using Robust.Shared.Random;
 
 namespace Content.Server._Goobstation.Wizard.Systems;
 
-public sealed partial class IceCubeSystem : SharedIceCubeSystem
+public sealed class IceCubeSystem : SharedIceCubeSystem
 {
-    [Dependency] private IRobustRandom _random = default!;
+    [Dependency] private readonly IRobustRandom _random = default!;
 
-    [Dependency] private FixtureSystem _fixtures = default!;
-    [Dependency] private ActionBlockerSystem _blocker = default!;
-    [Dependency] private TemperatureSystem _temperature = default!;
-    [Dependency] private EntityWhitelistSystem _whitelist = default!;
+    [Dependency] private readonly FixtureSystem _fixtures = default!;
+    [Dependency] private readonly ActionBlockerSystem _blocker = default!;
+    [Dependency] private readonly TemperatureSystem _temperature = default!;
+    [Dependency] private readonly EntityWhitelistSystem _whitelist = default!;
 
     private const string IceCubeFixture = "ice-cube-fixture";
 
@@ -79,7 +85,7 @@ public sealed partial class IceCubeSystem : SharedIceCubeSystem
                 temperature);
         }
 
-        var realDamage = args.DamageDelta.DamageDict.Where(kvp => kvp.Key.Id is "Blunt" or "Slash" or "Piercing" or "Heat")
+        var realDamage = args.DamageDelta.DamageDict.Where(kvp => kvp.Key is "Blunt" or "Slash" or "Piercing" or "Heat")
             .Sum(kvp => kvp.Value.Float());
 
         if (realDamage <= 0f)
