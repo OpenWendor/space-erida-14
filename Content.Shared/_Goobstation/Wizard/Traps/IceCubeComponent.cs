@@ -6,8 +6,8 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 using Content.Shared.Atmos;
-using Content.Goobstation.Maths.FixedPoint;
-using Content.Shared._Shitcode.Heretic.SpriteOverlay;
+using Content.Shared.FixedPoint;
+using Content.Shared._Goobstation.Heretic.SpriteOverlay;
 using Content.Shared.Damage;
 using Content.Shared.Physics;
 using Robust.Shared.GameStates;

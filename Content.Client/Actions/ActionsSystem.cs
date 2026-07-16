@@ -37,8 +37,6 @@ namespace Content.Client.Actions
         [Dependency] private IResourceManager _resources = default!;
         [Dependency] private MetaDataSystem _metaData = default!;
         [Dependency] private ISerializationManager _serialization = default!;
-        [Dependency] private ActionTargetMarkSystem _mark = default!;
-
         public event Action<EntityUid>? OnActionAdded;
         public event Action<EntityUid>? OnActionRemoved;
         public event Action? ActionsUpdated;
@@ -70,15 +68,7 @@ namespace Content.Client.Actions
             SubscribeLocalEvent<EntityTargetActionComponent, ActionTargetAttemptEvent>(OnEntityTargetAttempt);
             SubscribeLocalEvent<WorldTargetActionComponent, ActionTargetAttemptEvent>(OnWorldTargetAttempt);
 
-            SubscribeNetworkEvent<LoadActionsEvent>(OnLoadActions); // Goobstation
-        }
-
-        private void OnLoadActions(LoadActionsEvent msg, EntitySessionEventArgs args) // Goobstation
-        {
-            if (args.SenderSession != _playerManager.LocalSession)
-                return;
-
-            ActionsLoaded?.Invoke(GetEntity(msg.Entity));
+            // Goobstation: LoadActionsEvent removed
         }
 
 
@@ -374,9 +364,6 @@ namespace Content.Client.Actions
                 targetEnt = entityUid;
             }
 
-            if (HasComp<LockOnMarkActionComponent>(uid) && Exists(_mark.Target))
-                targetEnt = _mark.Target.Value; // Goobstation
-
             if (action.ClientExclusive)
             {
                 // TODO: abstract away from single event or maybe just RaiseLocalEvent?
@@ -403,11 +390,6 @@ namespace Content.Client.Actions
 
             if (args.Input.EntityUid is not { Valid: true } entity)
                 return;
-
-            // Goob edit start
-            if (HasComp<LockOnMarkActionComponent>(ent) && Exists(_mark.Target))
-                entity = _mark.Target.Value;
-            // Goob edit end
 
             // let world target component handle it
             var (uid, comp) = ent;

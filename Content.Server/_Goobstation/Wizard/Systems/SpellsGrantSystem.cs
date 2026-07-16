@@ -27,16 +27,16 @@ using Robust.Shared.Random;
 
 namespace Content.Server._Goobstation.Wizard.Systems;
 
-public sealed class SpellsGrantSystem : EntitySystem
+public sealed partial class SpellsGrantSystem : EntitySystem
 {
-    [Dependency] private readonly IPrototypeManager _proto = default!;
-    [Dependency] private readonly IRobustRandom _random = default!;
-    [Dependency] private readonly ActionContainerSystem _actionContainer = default!;
-    [Dependency] private readonly AntagSelectionSystem _antag = default!;
-    [Dependency] private readonly MindSystem _mind = default!;
-    [Dependency] private readonly ObjectivesSystem _objectives = default!;
-    [Dependency] private readonly TargetObjectiveSystem _target = default!;
-    [Dependency] private readonly IPlayerManager _player = default!;
+    [Dependency] private IPrototypeManager _proto = default!;
+    [Dependency] private IRobustRandom _random = default!;
+    [Dependency] private ActionContainerSystem _actionContainer = default!;
+    [Dependency] private AntagSelectionSystem _antag = default!;
+    [Dependency] private MindSystem _mind = default!;
+    [Dependency] private ObjectivesSystem _objectives = default!;
+    [Dependency] private TargetObjectiveSystem _target = default!;
+    [Dependency] private IPlayerManager _player = default!;
 
     public override void Initialize()
     {
@@ -118,7 +118,6 @@ public sealed class SpellsGrantSystem : EntitySystem
 
         EnsureComp<DynamicObjectiveTargetMindComponent>(comp.TargetMind.Value);
         _target.SetTarget(objective.Value, comp.TargetMind.Value, target);
-        _target.SetName(objective.Value, target);
         AddObjective();
 
         return;
@@ -138,10 +137,10 @@ public sealed class SpellsGrantSystem : EntitySystem
 
         comp.Granted = true;
 
-        if (comp.AntagProfile != null)
+        if (comp.AntagProfile is { } profile &&
+            _player.TryGetSessionById(args.Mind.Comp.UserId, out var session))
         {
-            _player.TryGetSessionById(args.Mind.Comp.UserId, out var session);
-            _antag.ForceMakeAntag<SpellsGrantComponent>(session, comp.AntagProfile);
+            _antag.ForceMakeAntag<SpellsGrantComponent>(session, profile);
         }
 
         var container = EnsureComp<ActionsContainerComponent>(args.Mind.Owner);
@@ -163,7 +162,7 @@ public sealed class SpellsGrantSystem : EntitySystem
         List<string>? ignoredSpells = null)
     {
         List<string> chosenSpells = new();
-        if (totalWeight <= 0f || !_proto.TryIndex(spells, out var randomActions))
+        if (totalWeight <= 0f || spells == null || !_proto.TryIndex(spells.Value, out var randomActions))
             return (totalWeight, chosenSpells);
 
         var weights = FilterDictionary(randomActions.Weights, ignoredSpells);

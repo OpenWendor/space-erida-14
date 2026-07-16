@@ -12,13 +12,13 @@ using Content.Shared._Goobstation.Wizard.SupermatterHalberd;
 using Content.Shared.StatusIcon.Components;
 using Robust.Client.Player;
 
-namespace Content.Client._Shitcode.Wizard.Systems;
+namespace Content.Client._Goobstation.Wizard.Systems;
 
-public sealed class SpellsSystem : SharedSpellsSystem
+public sealed partial class SpellsSystem : SharedSpellsSystem
 {
-    [Dependency] private readonly IPlayerManager _player = default!;
-    [Dependency] private readonly ActionTargetMarkSystem _mark = default!;
-    [Dependency] private readonly RaysSystem _rays = default!;
+    [Dependency] private IPlayerManager _player = default!;
+    [Dependency] private ActionTargetMarkSystem _mark = default!;
+    [Dependency] private RaysSystem _rays = default!;
 
     public event Action? StopTargeting;
 

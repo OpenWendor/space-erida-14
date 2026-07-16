@@ -11,7 +11,7 @@ using Robust.Shared.Utility;
 namespace Content.Shared._Goobstation.Wizard.Spellblade;
 
 [DataDefinition]
-[Prototype("spellbladeEnchantment")]
+[Prototype]
 public sealed partial class SpellbladeEnchantmentPrototype : IPrototype
 {
     [IdDataField]

@@ -9,7 +9,6 @@
 //
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-using Content.Goobstation.Common.Effects;
 using Content.Server._Goobstation.Wizard.Components;
 using Content.Server.Electrocution;
 using Content.Shared._Goobstation.Wizard.Projectiles;
@@ -20,11 +19,10 @@ using Content.Shared.Throwing;
 
 namespace Content.Server._Goobstation.Wizard.Systems;
 
-public sealed class ThrownLightningSystem : EntitySystem
+public sealed partial class ThrownLightningSystem : EntitySystem
 {
-    [Dependency] private readonly ElectrocutionSystem _electrocution = default!;
-    [Dependency] private readonly SpellsSystem _spells = default!;
-    [Dependency] private readonly SparksSystem _sparks = default!;
+    [Dependency] private ElectrocutionSystem _electrocution = default!;
+    [Dependency] private SpellsSystem _spells = default!;
 
     public override void Initialize()
     {
@@ -67,16 +65,10 @@ public sealed class ThrownLightningSystem : EntitySystem
         if (Deleting(ent))
             return;
 
-        if (args.Handled)
-            return;
-
-        args.Handled = true;
-
         if (!TryComp(args.Target, out StatusEffectsComponent? status))
             return;
 
-        _electrocution.TryDoElectrocution(args.Target, ent, 2, ent.Comp.StunTime, true, 0.5f, 1f, status, true); //Reserve electrocutionChance
-        _sparks.DoSparks(Transform(ent).Coordinates);
+        _electrocution.TryDoElectrocution(args.Target, ent.Owner, 2, ent.Comp.StunTime, true, 0.5f, status, true); //Reserve electrocutionChance
     }
 
     private bool Deleting(EntityUid ent)

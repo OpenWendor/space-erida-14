@@ -11,12 +11,6 @@
 
 using System.Linq;
 using System.Numerics;
-using Content.Goobstation.Common.Actions;
-using Content.Goobstation.Common.Bloodstream;
-using Content.Goobstation.Maths.FixedPoint;
-using Content.Goobstation.Shared.Emoting;
-using Content.Goobstation.Shared.Teleportation.Systems;
-using Content.Goobstation.Shared.Religion;
 using Content.Server._Goobstation.Wizard.Components;
 using Content.Server.Antag;
 using Content.Server.Body.Systems;
@@ -25,11 +19,10 @@ using Content.Server.Chat.Systems;
 using Content.Server.Emp;
 using Content.Server.Explosion.EntitySystems;
 using Content.Server.Fluids.EntitySystems;
-using Content.Server.IdentityManagement;
 using Content.Server.Inventory;
 using Content.Server.Polymorph.Systems;
-using Content.Server.Power.Components;
 using Content.Server.Power.EntitySystems;
+using Content.Shared.Power.Components;
 using Content.Server.Singularity.EntitySystems;
 using Content.Server.Spreader;
 using Content.Server.Store.Components;
@@ -40,20 +33,16 @@ using Content.Shared._Goobstation.Wizard.BindSoul;
 using Content.Shared._Goobstation.Wizard.Chuuni;
 using Content.Shared._Goobstation.Wizard.FadingTimedDespawn;
 using Content.Shared._Goobstation.Wizard.SpellCards;
-using Content.Shared._Shitmed.Damage; // Shitmed Change
-using Content.Shared._Shitmed.Medical.Surgery.Wounds.Components;
-using Content.Shared._Shitmed.Medical.Surgery.Wounds.Systems;
-using Content.Shared._Shitmed.Targeting;
 using Content.Shared.Actions.Components;
 using Content.Shared.Body.Components;
-using Content.Shared.Body.Part;
 using Content.Shared.Chat;
 using Content.Shared.Chemistry.Components;
 using Content.Shared.Chemistry.EntitySystems;
 using Content.Shared.Construction.Components;
 using Content.Shared.Coordinates.Helpers;
+using Content.Shared.Damage;
+using Content.Shared.FixedPoint;
 using Content.Shared.Friction;
-using Content.Shared.Gibbing.Events;
 using Content.Shared.Hands.Components;
 using Content.Shared.Humanoid;
 using Content.Shared.IdentityManagement;
@@ -86,59 +75,39 @@ using Robust.Shared.Utility;
 
 namespace Content.Server._Goobstation.Wizard.Systems; //todo refactor wiz
 
-public sealed class SpellsSystem : SharedSpellsSystem
+public sealed partial class SpellsSystem : SharedSpellsSystem
 {
-    [Dependency] private readonly IChatManager _chatManager = default!;
-    [Dependency] private readonly EmpSystem _emp = default!;
-    [Dependency] private readonly SmokeSystem _smoke = default!;
-    [Dependency] private readonly SpreaderSystem _spreader = default!;
-    [Dependency] private readonly GravityWellSystem _gravityWell = default!;
-    [Dependency] private readonly ExplosionSystem _explosion = default!;
-    [Dependency] private readonly ChatSystem _chat = default!;
-    [Dependency] private readonly ServerInventorySystem _inventory = default!;
-    [Dependency] private readonly AntagSelectionSystem _antag = default!;
-    [Dependency] private readonly PolymorphSystem _polymorph = default!;
-    [Dependency] private readonly GunSystem _gun = default!;
-    [Dependency] private readonly BloodstreamSystem _bloodstream = default!;
-    [Dependency] private readonly IdentitySystem _identity = default!;
-    [Dependency] private readonly BatterySystem _battery = default!;
-    [Dependency] private readonly SharedRandomTeleportSystem _teleport = default!;
-    [Dependency] private readonly NpcFactionSystem _faction = default!;
-    [Dependency] private readonly IPlayerManager _player = default!;
-    [Dependency] private readonly TurfSystem _turf = default!;
-    [Dependency] private readonly SharedItemSystem _item = default!;
-    [Dependency] private readonly TileFrictionController _tileFriction = default!;
-    [Dependency] private readonly MobStateSystem _mobState = default!;
-    [Dependency] private readonly WoundSystem _wounds = default!;
-    [Dependency] private readonly SharedPopupSystem _popup = default!;
-    [Dependency] private readonly PuddleSystem _puddle = default!;
-    [Dependency] private readonly SharedSolutionContainerSystem _solutionContainer = default!;
-    [Dependency] private readonly DivineInterventionSystem _divineIntervention = default!;
+    [Dependency] private IChatManager _chatManager = default!;
+    [Dependency] private EmpSystem _emp = default!;
+    [Dependency] private SmokeSystem _smoke = default!;
+    [Dependency] private SpreaderSystem _spreader = default!;
+    [Dependency] private ExplosionSystem _explosion = default!;
+    [Dependency] private ChatSystem _chat = default!;
+    [Dependency] private ServerInventorySystem _inventory = default!;
+    [Dependency] private AntagSelectionSystem _antag = default!;
+    [Dependency] private PolymorphSystem _polymorph = default!;
+    [Dependency] private GunSystem _gun = default!;
+    [Dependency] private BloodstreamSystem _bloodstream = default!;
+    [Dependency] private IdentitySystem _identity = default!;
+    [Dependency] private BatterySystem _battery = default!;
+    [Dependency] private StoreSystem _store = default!;
+    [Dependency] private NpcFactionSystem _faction = default!;
+    [Dependency] private IPlayerManager _player = default!;
+    [Dependency] private TurfSystem _turf = default!;
+    [Dependency] private SharedItemSystem _item = default!;
+    [Dependency] private TileFrictionController _tileFriction = default!;
+    [Dependency] private MobStateSystem _mobState = default!;
 
     public override void Initialize()
     {
         base.Initialize();
 
         SubscribeLocalEvent<MindContainerComponent, SummonSimiansMaxedOutEvent>(OnMonkeyAscension);
-        SubscribeLocalEvent<BloodlossDamageMultiplierComponent, StoppedTakingBloodlossDamageEvent>(OnBloodlossStopped);
-        SubscribeLocalEvent<BloodlossDamageMultiplierComponent, GetBloodlossDamageMultiplierEvent>(OnGetBloodlossMultiplier);
-    }
-
-    private void OnGetBloodlossMultiplier(Entity<BloodlossDamageMultiplierComponent> ent,
-        ref GetBloodlossDamageMultiplierEvent args)
-    {
-        args.Multiplier *= ent.Comp.Multiplier;
     }
 
     protected override void CreateChargeEffect(EntityUid uid, ChargeSpellRaysEffectEvent ev)
     {
         RaiseNetworkEvent(ev, Filter.PvsExcept(uid));
-    }
-
-    private void OnBloodlossStopped(Entity<BloodlossDamageMultiplierComponent> ent,
-        ref StoppedTakingBloodlossDamageEvent args)
-    {
-        RemCompDeferred(ent.Owner, ent.Comp);
     }
 
     private void OnMonkeyAscension(Entity<MindContainerComponent> ent, ref SummonSimiansMaxedOutEvent args)
@@ -158,8 +127,8 @@ public sealed class SpellsSystem : SharedSpellsSystem
             if (!Tag.HasTag(action, args.MaxLevelTag))
                 continue;
 
-            if (TryComp(action, out StoreRefundComponent? refund))
-                StoreSystem.DisableListingRefund(refund.Data);
+            if (TryComp(action, out StoreRefundComponent? refund) && refund.StoreEntity.HasValue)
+                _store.DisableRefund(refund.StoreEntity.Value);
 
             hasMaxLevelSimians = true;
         }
@@ -191,10 +160,7 @@ public sealed class SpellsSystem : SharedSpellsSystem
         var coords = TransformSystem.GetMapCoordinates(ev.Performer);
         foreach (var uid in Lookup.GetEntitiesInRange(coords, ev.Range))
         {
-            if (_divineIntervention.TouchSpellDenied(uid))
-                continue;
-
-            _emp.TryEmpEffects(uid, ev.EnergyConsumption, ev.DisableDuration);
+            _emp.TryEmpEffects(uid, ev.EnergyConsumption, TimeSpan.FromSeconds(ev.DisableDuration));
         }
 
 
@@ -248,12 +214,6 @@ public sealed class SpellsSystem : SharedSpellsSystem
                 continue;
 
             if (entity == ev.Performer)
-                continue;
-
-            if (_divineIntervention.TouchSpellDenied(entity))
-                continue;
-
-            if (!_gravityWell.CanGravPulseAffect(entity))
                 continue;
 
             var xform = xformQuery.Comp(entity);
@@ -317,20 +277,12 @@ public sealed class SpellsSystem : SharedSpellsSystem
 
         Meta.SetEntityName(newEntity, name);
 
-        int? age = null;
         Gender? gender = null;
-        Sex? sex = null;
-        if (TryComp(oldEnt, out HumanoidAppearanceComponent? humanoid))
+        if (TryComp(oldEnt, out HumanoidProfileComponent? profile))
         {
-            age = humanoid.Age;
-            gender = humanoid.Gender;
-            sex = humanoid.Sex;
-            if (TryComp(newEntity, out HumanoidAppearanceComponent? newHumanoid))
+            if (TryComp(newEntity, out HumanoidProfileComponent? newProfile))
             {
-                newHumanoid.Age = age.Value;
-                newHumanoid.Gender = gender.Value;
-                newHumanoid.Sex = sex.Value;
-                Dirty(newEntity, newHumanoid);
+                gender = profile.Gender;
                 if (TryComp(newEntity, out GrammarComponent? grammar))
                     Grammar.SetGender((newEntity, grammar), gender.Value);
                 var identity = Identity.Entity(newEntity, EntityManager);
@@ -359,9 +311,7 @@ public sealed class SpellsSystem : SharedSpellsSystem
         soulBound.Name = name;
         soulBound.Item = item;
         soulBound.MapId = mapId;
-        soulBound.Age = age;
         soulBound.Gender = gender;
-        soulBound.Sex = sex;
         AddComp(mind, soulBound, true);
 
         _inventory.TransferEntityInventories(oldEnt, newEntity);
@@ -381,7 +331,7 @@ public sealed class SpellsSystem : SharedSpellsSystem
                 MagicSchool.Necromancy);
         }
 
-        Body.GibBody(oldEnt, contents: GibContentsOption.Gib);
+        QueueDel(oldEnt);
 
         if (!_player.TryGetSessionById(mindComponent.UserId, out var session))
             return;
@@ -412,9 +362,6 @@ public sealed class SpellsSystem : SharedSpellsSystem
         var school = MagicSchool.Transmutation;
         if (TryComp(ev.Action.Owner, out MagicComponent? magic))
             school = magic.School;
-
-        if (ev.LoadActions)
-            RaiseNetworkEvent(new LoadActionsEvent(GetNetEntity(ev.Performer)), newEnt.Value);
 
         if (TryComp(ev.Action.Owner, out SpeakOnActionComponent? speak))
         {
@@ -449,7 +396,7 @@ public sealed class SpellsSystem : SharedSpellsSystem
             return;
         var mapAngle = mapDirection.ToAngle();
 
-        var angles = _gun.LinearSpread(mapAngle - ev.Spread / 2, mapAngle + ev.Spread / 2, ev.ProjectilesAmount);
+        var angles = LinearSpread(mapAngle - ev.Spread / 2, mapAngle + ev.Spread / 2, ev.ProjectilesAmount);
 
         var linearDamping = Random.NextFloat(ev.MinMaxLinearDamping.X, ev.MinMaxLinearDamping.Y);
 
@@ -478,10 +425,7 @@ public sealed class SpellsSystem : SharedSpellsSystem
             }
 
             spellCard.Target = ev.Entity;
-            _gun.SetTarget(newUid, ev.Entity, out var targeted, false);
-            Entity<SpellCardComponent, PhysicsComponent, TargetedProjectileComponent> ent = (newUid, spellCard, physics,
-                targeted);
-            Dirty(ent);
+            Dirty(newUid, (MetaDataComponent?)null!);
         }
     }
 
@@ -518,7 +462,7 @@ public sealed class SpellsSystem : SharedSpellsSystem
         var xform = Transform(performer);
         var (pos, rot) = TransformSystem.GetWorldPositionRotation(xform);
 
-        var positions = _gun.LinearSpread(rot - angle, rot + angle, amount)
+        var positions = LinearSpread(rot - angle, rot + angle, amount)
             .Select(x => new MapCoordinates(pos + x.ToWorldVec() * range, xform.MapID));
 
         foreach (var position in positions)
@@ -613,8 +557,6 @@ public sealed class SpellsSystem : SharedSpellsSystem
         if (!Exists(speakerUid))
             return;
 
-        Color? color = null;
-
         if (Exists(casterUid))
         {
             var invocationEv = new GetSpellInvocationEvent(school, casterUid);
@@ -623,57 +565,44 @@ public sealed class SpellsSystem : SharedSpellsSystem
                 speech = Loc.GetString(invocationEv.Invocation);
             if (invocationEv.ToHeal.GetTotal() > FixedPoint2.Zero)
             {
-                // Heal both caster and speaker
                 Damageable.TryChangeDamage(casterUid,
                     -invocationEv.ToHeal,
                     true,
-                    false,
-                    targetPart: TargetBodyPart.All,
-                    splitDamage: SplitDamageBehavior.SplitEnsureAll);
+                    false);
 
                 if (speakerUid != casterUid)
                 {
                     Damageable.TryChangeDamage(speakerUid,
                         -invocationEv.ToHeal,
                         true,
-                        false,
-                        targetPart: TargetBodyPart.All,
-                        splitDamage: SplitDamageBehavior.SplitEnsureAll);
+                        false);
                 }
-            }
-
-            if (speakerUid != casterUid)
-            {
-                var colorEv = new GetMessageColorOverrideEvent();
-                RaiseLocalEvent(casterUid, colorEv);
-                color = colorEv.Color;
             }
         }
 
         _chat.TrySendInGameICMessage(speakerUid,
             speech,
             InGameICChatType.Speak,
-            false,
-            colorOverride: color);
+            false);
     }
 
     protected override bool ChargeItem(EntityUid uid, ChargeMagicEvent ev)
     {
-        if (!TryComp(uid, out BatteryComponent? battery) || battery.CurrentCharge >= battery.MaxCharge)
+        if (!TryComp(uid, out BatteryComponent? battery) || _battery.IsFull((uid, battery)))
             return false;
 
         if (Tag.HasTag(uid, ev.WandTag))
         {
-            var difference = battery.MaxCharge - battery.CurrentCharge;
+            var difference = battery.MaxCharge - _battery.GetCharge((uid, battery));
             var charge = MathF.Min(difference, ev.WandChargeRate);
             var degrade = charge * ev.WandDegradePercentagePerCharge;
             var afterDegrade = MathF.Max(ev.MinWandDegradeCharge, battery.MaxCharge - degrade);
             if (battery.MaxCharge > ev.MinWandDegradeCharge)
-                _battery.SetMaxCharge(uid, afterDegrade, battery);
-            _battery.AddCharge(uid, charge, battery);
+                _battery.SetMaxCharge((uid, battery), afterDegrade);
+            _battery.SetCharge((uid, battery), _battery.GetCharge((uid, battery)) + charge);
         }
         else
-            _battery.SetCharge(uid, battery.MaxCharge, battery);
+            _battery.SetCharge((uid, battery), battery.MaxCharge);
 
         PopupCharged(uid, ev.Performer, false);
         return true;
@@ -683,7 +612,10 @@ public sealed class SpellsSystem : SharedSpellsSystem
     {
         base.Blink(ev);
 
-        _teleport.RandomTeleport(ev.Performer, ev.Radius);
+        var radius = ev.Radius.Next(Random);
+        var coords = TransformSystem.GetMapCoordinates(ev.Performer);
+        var offset = new Vector2(Random.NextFloat(-radius, radius), Random.NextFloat(-radius, radius));
+        TransformSystem.SetMapCoordinates(ev.Performer, new MapCoordinates(coords.Position + offset, coords.MapId));
     }
 
     protected override void Rathen(RathenEvent ev)
@@ -693,55 +625,25 @@ public sealed class SpellsSystem : SharedSpellsSystem
         var mapPos = TransformSystem.GetMapCoordinates(ev.Performer);
         var stunTime = ev.StunTime;
 
-        foreach (var (target, _) in Lookup.GetEntitiesInRange<FartComponent>(mapPos, ev.MaxRange))
+        foreach (var target in Lookup.GetEntitiesInRange(mapPos, ev.MaxRange))
         {
             if (target == ev.Performer)
                 continue;
 
-            if (_divineIntervention.TouchSpellDenied(target))
+            if (_mobState.IsDead(target))
                 continue;
 
-            if (!TryComp<FartComponent>(target, out var fart)
-                || !TryComp<BodyComponent>(target, out var body)
-                || _mobState.IsDead(target))
-                continue;
-
-            Stun.KnockdownOrStun(target, stunTime, true);
-
-            if (!fart.SuperFarted)
-            {
-                fart.FartInhale = true;
-                _chat.TryEmoteWithChat(target, "FartSuper", ignoreActionBlocker: true, forceEmote: true);
-            }
-            else
-            {
-                _popup.PopupEntity(
-                Loc.GetString("spell-rathen-gut-popup"),
-                target,
-                target,
-                PopupType.LargeCaution);
-
-                Damageable.TryChangeDamage(target,
-                    ev.SuperFartDamage,
-                    true,
-                    origin: ev.Performer);
-
-                if (TryComp<BloodstreamComponent>(target, out var bloodstream)
-                    && _solutionContainer.ResolveSolution(target, bloodstream.BloodSolutionName, ref bloodstream.BloodSolution))
-                {
-                    var toSpill = _solutionContainer.SplitSolution(bloodstream.BloodSolution.Value, 15);
-                    _puddle.TrySpillAt(target, toSpill, out _);
-                }
-
-                foreach (var limbType in new[] { BodyPartType.Arm, BodyPartType.Leg })
-                    foreach (var (partId, _) in Body.GetBodyChildrenOfType(target, limbType, body))
-                    {
-                        if (Random.Prob(ev.LimbTearChance)
-                            && TryComp<WoundableComponent>(partId, out var woundable)
-                            && woundable.ParentWoundable.HasValue)
-                            _wounds.AmputateWoundable(woundable.ParentWoundable.Value, partId, woundable);
-                    }
-            }
+            Stun.TryKnockdown(target, stunTime, true);
         }
+    }
+
+    private static Angle[] LinearSpread(Angle start, Angle end, int intervals)
+    {
+        var angles = new Angle[intervals];
+        for (var i = 0; i < intervals; i++)
+        {
+            angles[i] = start + (end - start) * i / intervals;
+        }
+        return angles;
     }
 }

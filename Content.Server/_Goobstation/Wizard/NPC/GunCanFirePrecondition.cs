@@ -11,6 +11,7 @@ using Content.Server.NPC.HTN.Preconditions;
 using Content.Server.Weapons.Ranged.Systems;
 using Content.Shared.Weapons.Ranged;
 using Content.Shared.Weapons.Ranged.Components;
+using Robust.Shared.Containers;
 
 namespace Content.Server._Goobstation.Wizard.NPC;
 
@@ -19,7 +20,7 @@ namespace Content.Server._Goobstation.Wizard.NPC;
 /// </summary>
 public sealed partial class GunCanFirePrecondition : HTNPrecondition
 {
-    [Dependency] private readonly IEntityManager _entManager = default!;
+    [Dependency] private IEntityManager _entManager = default!;
 
     [DataField]
     public bool Invert;
@@ -29,10 +30,10 @@ public sealed partial class GunCanFirePrecondition : HTNPrecondition
         var owner = blackboard.GetValue<EntityUid>(NPCBlackboard.Owner);
         var gunSystem = _entManager.System<GunSystem>();
 
-        if (!gunSystem.TryGetGun(owner, out var gunUid, out _))
+        if (!gunSystem.TryGetGun(owner, out var gun))
             return false;
 
-        return CanFire(gunSystem, gunUid) ^ Invert;
+        return CanFire(gunSystem, gun.Owner) ^ Invert;
     }
 
     private bool CanFire(GunSystem gunSystem, EntityUid gunUid)
@@ -65,11 +66,17 @@ public sealed partial class GunCanFirePrecondition : HTNPrecondition
 
         bool CanMagazineShoot(EntityUid gunEnt)
         {
-            if (gunSystem.GetMagazineEntity(gunEnt) is not { } mag)
+            var containerSys = _entManager.System<SharedContainerSystem>();
+            if (!containerSys.TryGetContainer(gunEnt, "gun_magazine", out var container))
                 return true;
 
-            return !_entManager.TryGetComponent(mag, out BallisticAmmoProviderComponent? ballisticMag) ||
-                   CanBallisticShoot(ballisticMag);
+            foreach (var ent in container.ContainedEntities)
+            {
+                if (_entManager.TryGetComponent(ent, out BallisticAmmoProviderComponent? ballisticMag) && ballisticMag != null)
+                    return CanBallisticShoot(ballisticMag);
+            }
+
+            return true;
         }
 
         bool CanBallisticShoot(BallisticAmmoProviderComponent ballisticProvider)

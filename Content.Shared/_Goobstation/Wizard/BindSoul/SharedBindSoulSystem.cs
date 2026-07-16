@@ -10,12 +10,13 @@ using System.Linq;
 using Content.Shared._Goobstation.Wizard.Projectiles;
 using Content.Shared.Actions;
 using Content.Shared.Actions.Components;
-using Content.Shared.Body.Systems;
+using Content.Shared.Body;
 using Content.Shared.Damage;
+using Content.Shared.Damage.Components;
 using Content.Shared.Examine;
 using Content.Shared.Ghost;
-using Content.Shared.Gibbing.Events;
 using Content.Shared.Gravity;
+using Content.Shared.Gibbing;
 using Content.Shared.Mind;
 using Content.Shared.Mind.Components;
 using Content.Shared.Mobs;
@@ -32,22 +33,21 @@ using Robust.Shared.Spawners;
 
 namespace Content.Shared._Goobstation.Wizard.BindSoul;
 
-public abstract class SharedBindSoulSystem : EntitySystem
+public abstract partial class  SharedBindSoulSystem : EntitySystem
 {
-    [Dependency] protected readonly SharedTransformSystem TransformSystem = default!;
-    [Dependency] protected readonly SharedMindSystem Mind = default!;
-    [Dependency] protected readonly SharedStunSystem Stun = default!;
-    [Dependency] protected readonly MetaDataSystem Meta = default!;
-    [Dependency] protected readonly SharedContainerSystem Container = default!;
-    [Dependency] protected readonly NpcFactionSystem Faction = default!;
-    [Dependency] protected readonly GrammarSystem Grammar = default!;
-    [Dependency] private   readonly TagSystem _tag = default!;
-    [Dependency] private   readonly SharedActionsSystem _actions = default!;
-    [Dependency] private   readonly SharedBodySystem _body = default!;
-    [Dependency] private   readonly SharedPhysicsSystem _physics = default!;
-    [Dependency] private   readonly SharedGravitySystem _gravity = default!;
-    [Dependency] private   readonly IPrototypeManager _proto = default!;
-    [Dependency] private   readonly INetManager _net = default!;
+    [Dependency] protected SharedTransformSystem TransformSystem = default!;
+    [Dependency] protected SharedMindSystem Mind = default!;
+    [Dependency] protected SharedStunSystem Stun = default!;
+    [Dependency] protected MetaDataSystem Meta = default!;
+    [Dependency] protected SharedContainerSystem Container = default!;
+    [Dependency] protected NpcFactionSystem Faction = default!;
+    [Dependency] protected GrammarSystem Grammar = default!;
+    [Dependency] private   TagSystem _tag = default!;
+    [Dependency] private   SharedActionsSystem _actions = default!;
+    [Dependency] private   GibbingSystem _gibbing = default!;
+    [Dependency] private   SharedPhysicsSystem _physics = default!;
+    [Dependency] private   SharedGravitySystem _gravity = default!;
+    [Dependency] private   INetManager _net = default!;
 
     public static readonly ProtoId<TagPrototype> IgnoreBindSoulTag = "IgnoreBindSoul"; // Goobstation
 
@@ -101,7 +101,7 @@ public abstract class SharedBindSoulSystem : EntitySystem
         var coords = TransformSystem.GetMapCoordinates(args.Container, xform);
 
         if (!Deleting(args.Container))
-            _body.GibBody(args.Container, true, contents: GibContentsOption.Skip);
+            _gibbing.Gib(args.Container, false);
 
         if (!Deleting(args.Container))
             QueueDel(args.Container);
@@ -118,8 +118,7 @@ public abstract class SharedBindSoulSystem : EntitySystem
                 return;
         }
         else if ((itemXform.GridUid == null &&
-                 (!TryComp(item.Value, out PhysicsComponent? body) ||
-                  _gravity.IsWeightless(item.Value, body, itemXform)) ||
+                 _gravity.IsWeightless(item.Value) ||
                  itemXform.GridUid != xform.GridUid) && // If it is in space or on another grid
                  !RespawnItem(item.Value, itemXform, xform))
             return;

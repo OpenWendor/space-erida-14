@@ -10,7 +10,7 @@ using Content.Shared._Goobstation.Wizard.Mutate;
 using Content.Shared.Humanoid;
 using Robust.Client.GameObjects;
 
-namespace Content.Client._Shitcode.Wizard.Systems;
+namespace Content.Client._Goobstation.Wizard.Systems;
 
 public sealed class HulkSystem : SharedHulkSystem
 {
@@ -26,9 +26,6 @@ public sealed class HulkSystem : SharedHulkSystem
         var (uid, comp) = ent;
 
         if (TerminatingOrDeleted(uid))
-            return;
-
-        if (HasComp<HumanoidAppearanceComponent>(uid))
             return;
 
         if (!TryComp<SpriteComponent>(uid, out var sprite))
@@ -50,9 +47,6 @@ public sealed class HulkSystem : SharedHulkSystem
         base.UpdateColorStartup(hulk);
 
         var (uid, comp) = hulk;
-
-        if (HasComp<HumanoidAppearanceComponent>(uid))
-            return;
 
         if (!TryComp<SpriteComponent>(uid, out var sprite))
             return;

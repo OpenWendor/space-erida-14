@@ -11,7 +11,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 using System.Linq;
-using Content.Shared._White.Blink;
 using Content.Shared.Damage;
 using Content.Shared.Damage.Events;
 using Content.Shared.Damage.Systems;
@@ -28,12 +27,12 @@ using Robust.Shared.Prototypes;
 
 namespace Content.Shared._Goobstation.Wizard.Spellblade;
 
-public abstract class SharedSpellbladeSystem : EntitySystem
+public abstract partial class  SharedSpellbladeSystem : EntitySystem
 {
-    [Dependency] protected readonly UseDelaySystem UseDelay = default!;
-    [Dependency] protected readonly SharedAudioSystem Audio = default!;
-    [Dependency] private   readonly IPrototypeManager _protoManager = default!;
-    [Dependency] private   readonly SharedHandsSystem _hands = default!;
+    [Dependency] protected UseDelaySystem UseDelay = default!;
+    [Dependency] protected SharedAudioSystem Audio = default!;
+    [Dependency] private   IPrototypeManager _protoManager = default!;
+    [Dependency] private   SharedHandsSystem _hands = default!;
 
     public override void Initialize()
     {
@@ -58,8 +57,7 @@ public abstract class SharedSpellbladeSystem : EntitySystem
 
     private void OnDamageModify(Entity<ShieldedComponent> ent, ref DamageModifyEvent args)
     {
-        args.Damage = DamageSpecifier.ApplyModifierSet(args.Damage,
-            DamageSpecifier.PenetrateArmor(ent.Comp.Resistances, args.Damage.ArmorPenetration));
+        args.Damage = DamageSpecifier.ApplyModifierSet(args.Damage, ent.Comp.Resistances);
     }
 
     private void OnBeforeStatusEffect(Entity<ShieldedComponent> ent, ref BeforeOldStatusEffectAddedEvent args)
@@ -90,7 +88,6 @@ public abstract class SharedSpellbladeSystem : EntitySystem
             return;
 
         weapon.AttackRate *= args.MeleeMultiplier;
-        weapon.HeavyStaminaCost /= args.MeleeMultiplier;
         weapon.Damage /= args.MeleeMultiplier;
         Dirty(ent.Owner, weapon);
     }
@@ -119,7 +116,7 @@ public abstract class SharedSpellbladeSystem : EntitySystem
         Dirty(ent.Owner, blink);
 
         UseDelay.SetLength(ent.Owner, args.ToggleDelay);
-        UseDelay.SetLength(ent.Owner, args.BlinkDelay, blink.BlinkDelay);
+        UseDelay.SetLength(ent.Owner, args.BlinkDelay, "BlinkDelay");
     }
 
     private void OnLightning(Entity<SpellbladeComponent> ent, ref LightningSpellbladeEnchantmentEvent args)

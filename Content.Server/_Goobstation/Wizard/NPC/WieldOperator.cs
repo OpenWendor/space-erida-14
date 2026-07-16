@@ -17,20 +17,25 @@ namespace Content.Server._Goobstation.Wizard.NPC;
 
 public sealed partial class WieldOperator : HTNOperator
 {
-    [Dependency] private readonly IEntityManager _entManager = default!;
+    [Dependency] private IEntityManager _entManager = default!;
 
     public override HTNOperatorStatus Update(NPCBlackboard blackboard, float frameTime)
     {
-        if (!blackboard.TryGetValue(NPCBlackboard.ActiveHandEntity, out EntityUid? item, _entManager))
+        var owner = blackboard.GetValue<EntityUid>(NPCBlackboard.Owner);
+
+        if (!blackboard.TryGetValue<string>(NPCBlackboard.ActiveHand, out var activeHand, _entManager))
             return HTNOperatorStatus.Finished;
 
-        if (!_entManager.TryGetComponent(item, out WieldableComponent? wieldable) || wieldable.Wielded)
+        var handsSystem = _entManager.System<HandsSystem>();
+        if (!handsSystem.TryGetHeldItem(owner, activeHand, out var weaponUid))
             return HTNOperatorStatus.Finished;
 
-        var owner = blackboard.GetValueOrDefault<EntityUid>(NPCBlackboard.Owner, _entManager);
+        if (!_entManager.TryGetComponent(weaponUid, out WieldableComponent? wieldable) || wieldable.Wielded)
+            return HTNOperatorStatus.Finished;
+
         var wieldableSystem = _entManager.System<SharedWieldableSystem>();
 
-        return wieldableSystem.TryWield(item.Value, wieldable, owner)
+        return wieldableSystem.TryWield((weaponUid.Value, wieldable), owner)
             ? HTNOperatorStatus.Finished
             : HTNOperatorStatus.Failed;
     }

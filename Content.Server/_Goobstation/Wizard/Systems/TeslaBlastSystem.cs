@@ -8,14 +8,12 @@
 using System.Numerics;
 using Content.Server.Lightning;
 using Content.Shared._Goobstation.Wizard.TeslaBlast;
-using Content.Shared.Electrocution;
-using Content.Shared.Physics;
 
 namespace Content.Server._Goobstation.Wizard.Systems;
 
-public sealed class TeslaBlastSystem : SharedTeslaBlastSystem
+public sealed partial class TeslaBlastSystem : SharedTeslaBlastSystem
 {
-    [Dependency] private readonly LightningSystem _lightning = default!;
+    [Dependency] private LightningSystem _lightning = default!;
 
     public override void ShootRandomLightnings(EntityUid performer,
         float power,
@@ -35,32 +33,12 @@ public sealed class TeslaBlastSystem : SharedTeslaBlastSystem
             minMaxDamage,
             minMaxStunTime);
 
-        var damage = float.Lerp(minMaxDamage.X, minMaxDamage.Y, power);
-        var stunTime = float.Lerp(minMaxStunTime.X, minMaxStunTime.Y, power);
-
-        var action = new Action<EntityUid>(uid =>
-        {
-            var preventCollide = EnsureComp<PreventCollideComponent>(uid);
-            preventCollide.Uid = performer;
-
-            var electrified = EnsureComp<ElectrifiedComponent>(uid);
-            electrified.IgnoredEntity = performer;
-            electrified.IgnoreInsulation = true;
-            electrified.ShockDamage = damage;
-            electrified.ShockTime = stunTime;
-
-            Entity<PreventCollideComponent, ElectrifiedComponent> ent = (uid, preventCollide, electrified);
-            Dirty(ent);
-        });
-
         _lightning.ShootRandomLightnings(performer,
             range,
             boltCount,
             lightningPrototype,
             arcDepth,
-            false,
-            performer,
-            action);
+            false);
     }
 
     public override void ShootLightning(EntityUid performer,
@@ -70,21 +48,6 @@ public sealed class TeslaBlastSystem : SharedTeslaBlastSystem
     {
         base.ShootLightning(performer, target, lightningPrototype, damage);
 
-        var action = new Action<EntityUid>(uid =>
-        {
-            var preventCollide = EnsureComp<PreventCollideComponent>(uid);
-            preventCollide.Uid = performer;
-
-            var electrified = EnsureComp<ElectrifiedComponent>(uid);
-            electrified.IgnoredEntity = performer;
-            electrified.IgnoreInsulation = true;
-            electrified.ShockDamage = damage * 2f; // Multiplying by 2 because siemens is 0.5
-            electrified.SiemensCoefficient = 0.5f;
-
-            Entity<PreventCollideComponent, ElectrifiedComponent> ent = (uid, preventCollide, electrified);
-            Dirty(ent);
-        });
-
-        _lightning.ShootLightning(performer, target, lightningPrototype, false, action);
+        _lightning.ShootLightning(performer, target, lightningPrototype, false);
     }
 }

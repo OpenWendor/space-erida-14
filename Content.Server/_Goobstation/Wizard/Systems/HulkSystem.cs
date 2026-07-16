@@ -26,16 +26,15 @@ using Robust.Shared.Timing;
 
 namespace Content.Server._Goobstation.Wizard.Systems;
 
-public sealed class HulkSystem : SharedHulkSystem
+public sealed partial class HulkSystem : SharedHulkSystem
 {
-    [Dependency] private readonly IGameTiming _timing = default!;
-    [Dependency] private readonly IRobustRandom _random = default!;
-    [Dependency] private readonly PhysicsSystem _physics = default!;
-    [Dependency] private readonly AppearanceSystem _appearance = default!;
-    [Dependency] private readonly HumanoidAppearanceSystem _humanoidAppearance = default!;
-    [Dependency] private readonly GunSystem _gun = default!;
-    [Dependency] private readonly PopupSystem _popup = default!;
-    [Dependency] private readonly ChatSystem _chat = default!;
+    [Dependency] private IGameTiming _timing = default!;
+    [Dependency] private IRobustRandom _random = default!;
+    [Dependency] private PhysicsSystem _physics = default!;
+    [Dependency] private AppearanceSystem _appearance = default!;
+    [Dependency] private GunSystem _gun = default!;
+    [Dependency] private PopupSystem _popup = default!;
+    [Dependency] private ChatSystem _chat = default!;
 
     public override void Initialize()
     {
@@ -54,25 +53,13 @@ public sealed class HulkSystem : SharedHulkSystem
 
         Scale(ent, 0.8f);
 
-        if (TryComp(uid, out HumanoidAppearanceComponent? humanoid))
-        {
-            foreach (var (layer, info) in comp.OldCustomBaseLayers)
-            {
-                _humanoidAppearance.SetBaseLayerColor(uid, layer, info.Color, false, humanoid);
-                _humanoidAppearance.SetBaseLayerId(uid, layer, info.Id, false, humanoid);
-            }
-
-            humanoid.EyeColor = comp.OldEyeColor;
-            _humanoidAppearance.SetSkinColor(uid, comp.OldSkinColor, true, false, humanoid);
-        }
-
         _popup.PopupEntity(Loc.GetString("hulk-unhulked"), uid, uid);
 
         if (!ent.Comp.LaserEyes)
             return;
 
         RemComp<GunComponent>(ent);
-        RemComp<HitscanBatteryAmmoProviderComponent>(ent);
+        RemComp<BasicHitscanAmmoProviderComponent>(ent);
     }
 
     private void OnInit(Entity<HulkComponent> ent, ref ComponentInit args)
@@ -81,44 +68,15 @@ public sealed class HulkSystem : SharedHulkSystem
 
         Scale(uid, 1.25f);
 
-        if (TryComp(uid, out HumanoidAppearanceComponent? humanoid))
-        {
-            comp.OldSkinColor = humanoid.SkinColor;
-            comp.OldEyeColor = humanoid.EyeColor;
-            comp.OldCustomBaseLayers = new(humanoid.CustomBaseLayers);
-
-            _humanoidAppearance.SetSkinColor(uid, comp.SkinColor, true, false, humanoid);
-
-            if (comp.LaserEyes)
-                humanoid.EyeColor = comp.EyeColor;
-
-            _humanoidAppearance.SetBaseLayerId(uid, HumanoidVisualLayers.Tail, comp.BaseLayerExternal, false, humanoid);
-            _humanoidAppearance.SetBaseLayerId(uid,
-                HumanoidVisualLayers.HeadSide,
-                comp.BaseLayerExternal,
-                false,
-                humanoid);
-            _humanoidAppearance.SetBaseLayerId(uid,
-                HumanoidVisualLayers.HeadTop,
-                comp.BaseLayerExternal,
-                false,
-                humanoid);
-            _humanoidAppearance.SetBaseLayerId(uid,
-                HumanoidVisualLayers.Snout,
-                comp.BaseLayerExternal,
-                false,
-                humanoid);
-        }
-
         if (!comp.LaserEyes)
             return;
 
         RemComp<GunComponent>(uid);
         var gun = AddComp<GunComponent>(uid);
-        _gun.SetFireRate(gun, 1.5f);
-        _gun.SetUseKey(gun, false);
-        _gun.SetClumsyProof(gun, true);
-        _gun.SetSoundGunshot(gun, comp.SoundGunshot);
+        gun.FireRate = 1.5f;
+        gun.UseKey = false;
+        gun.ClumsyProof = true;
+        gun.SoundGunshot = comp.SoundGunshot;
         _gun.RefreshModifiers((uid, gun));
         var hitscan = EntityManager.ComponentFactory.GetComponent<BasicHitscanAmmoProviderComponent>();
         hitscan.Proto = comp.ShotProto;

@@ -5,19 +5,13 @@
 //
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-using Content.Goobstation.Shared.Teleportation.Systems;
 using Content.Server._Goobstation.Wizard.Components;
 using Content.Shared.Projectiles;
-using Content.Shared.Teleportation;
-using Content.Shared.Whitelist;
 
 namespace Content.Server._Goobstation.Wizard.Systems;
 
-public sealed class RandomTeleportOnProjectileHitSystem : EntitySystem
+public sealed partial class RandomTeleportOnProjectileHitSystem : EntitySystem
 {
-    [Dependency] private readonly SharedRandomTeleportSystem _teleport = default!;
-    [Dependency] private readonly EntityWhitelistSystem _whitelist = default!;
-
     public override void Initialize()
     {
         base.Initialize();
@@ -27,8 +21,5 @@ public sealed class RandomTeleportOnProjectileHitSystem : EntitySystem
 
     private void OnHit(Entity<RandomTeleportOnProjectileHitComponent> ent, ref ProjectileHitEvent args)
     {
-        var (uid, comp) = ent;
-        if (TryComp(uid, out RandomTeleportComponent? tele) && _whitelist.IsValid(comp.Whitelist, args.Target))
-            _teleport.RandomTeleport(args.Target, tele);
     }
 }

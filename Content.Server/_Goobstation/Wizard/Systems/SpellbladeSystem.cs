@@ -11,8 +11,9 @@ using Content.Shared.Atmos.Components;
 using Content.Server.Atmos.EntitySystems;
 using Content.Server.Lightning;
 using Content.Shared._Goobstation.Wizard.Spellblade;
-using Content.Shared._Shitmed.Targeting;
 using Content.Shared.Damage;
+using Content.Shared.Damage.Components;
+using Content.Shared.Damage.Systems;
 using Content.Shared.Electrocution;
 using Content.Shared.Mobs.Components;
 using Content.Shared.Physics;
@@ -22,12 +23,12 @@ using Content.Server.Atmos.Components;
 
 namespace Content.Server._Goobstation.Wizard.Systems;
 
-public sealed class SpellbladeSystem : SharedSpellbladeSystem
+public sealed partial class SpellbladeSystem : SharedSpellbladeSystem
 {
-    [Dependency] private readonly LightningSystem _lightning = default!;
-    [Dependency] private readonly FlammableSystem _flammable = default!;
-    [Dependency] private readonly EntityLookupSystem _lookup = default!;
-    [Dependency] private readonly DamageableSystem _damageable = default!;
+    [Dependency] private LightningSystem _lightning = default!;
+    [Dependency] private FlammableSystem _flammable = default!;
+    [Dependency] private EntityLookupSystem _lookup = default!;
+    [Dependency] private DamageableSystem _damageable = default!;
 
     public override void Initialize()
     {
@@ -61,7 +62,7 @@ public sealed class SpellbladeSystem : SharedSpellbladeSystem
             temporal.HitsLeft--;
             temporal.Accumulator = 0f;
 
-            _damageable.TryChangeDamage(uid, temporal.Damage, damageable: damageable, targetPart: TargetBodyPart.Chest);
+            _damageable.TryChangeDamage(uid, temporal.Damage);
             Audio.PlayPvs(temporal.HitSound, xform.Coordinates);
             Spawn(temporal.Effect, xform.Coordinates);
 
@@ -169,31 +170,11 @@ public sealed class SpellbladeSystem : SharedSpellbladeSystem
 
         UseDelay.TryResetDelay((uid, useDelay));
 
-        var performer = args.User;
-
-        var action = new Action<EntityUid>(lightning =>
-        {
-            var preventCollide = EnsureComp<PreventCollideComponent>(lightning);
-            preventCollide.Uid = performer;
-
-            var electrified = EnsureComp<ElectrifiedComponent>(lightning);
-            electrified.IgnoredEntity = performer;
-            electrified.IgnoreInsulation = true;
-            electrified.ShockDamage = comp.ShockDamage;
-            electrified.SiemensCoefficient = comp.Siemens;
-            electrified.ShockTime = comp.ShockTime;
-
-            Entity<PreventCollideComponent, ElectrifiedComponent> entity = (lightning, preventCollide, electrified);
-            Dirty(entity);
-        });
-
         _lightning.ShootRandomLightnings(args.User,
             comp.Range,
             comp.BoltCount,
             comp.LightningPrototype,
             comp.ArcDepth,
-            false,
-            args.User,
-            action);
+            false);
     }
 }

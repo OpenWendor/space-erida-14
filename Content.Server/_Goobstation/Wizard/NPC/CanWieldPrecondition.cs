@@ -5,6 +5,7 @@
 //
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
+using Content.Server.Hands.Systems;
 using Content.Server.NPC;
 using Content.Server.NPC.HTN.Preconditions;
 using Content.Shared.Wieldable;
@@ -14,7 +15,7 @@ namespace Content.Server._Goobstation.Wizard.NPC;
 
 public sealed partial class CanWieldPrecondition : HTNPrecondition
 {
-    [Dependency] private readonly IEntityManager _entManager = default!;
+    [Dependency] private IEntityManager _entManager = default!;
 
     [DataField]
     public bool Invert;
@@ -22,13 +23,17 @@ public sealed partial class CanWieldPrecondition : HTNPrecondition
     public override bool IsMet(NPCBlackboard blackboard)
     {
         var owner = blackboard.GetValue<EntityUid>(NPCBlackboard.Owner);
-        if (!blackboard.TryGetValue(NPCBlackboard.ActiveHandEntity, out EntityUid? item, _entManager) ||
+        if (!blackboard.TryGetValue<string>(NPCBlackboard.ActiveHand, out var activeHand, _entManager))
+            return false ^ Invert;
+
+        var handsSystem = _entManager.System<HandsSystem>();
+        if (!handsSystem.TryGetHeldItem(owner, activeHand, out var item) ||
             !_entManager.TryGetComponent(item, out WieldableComponent? wieldable))
             return false ^ Invert;
 
         var wieldableSystem = _entManager.System<SharedWieldableSystem>();
 
-        if (!wieldableSystem.CanWield(item.Value, wieldable, owner, true))
+        if (!wieldableSystem.CanWield((item.Value, wieldable), owner, true))
             return false ^ Invert;
 
         var beforeWieldEv = new WieldAttemptEvent();

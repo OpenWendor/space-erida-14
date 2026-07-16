@@ -5,24 +5,31 @@
 //
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
+using Content.Server.Hands.Systems;
 using Content.Server.NPC;
 using Content.Server.NPC.HTN.Preconditions;
-using Content.Shared.Hands.Components;
 using Content.Shared.Wieldable.Components;
 
 namespace Content.Server._Goobstation.Wizard.NPC;
 
 public sealed partial class UnwieldedEntityInHandsPrecondition : HTNPrecondition
 {
-    [Dependency] private readonly IEntityManager _entManager = default!;
+    [Dependency] private IEntityManager _entManager = default!;
 
     [DataField]
     public bool Invert;
 
     public override bool IsMet(NPCBlackboard blackboard)
     {
-        var result = blackboard.TryGetValue(NPCBlackboard.ActiveHandEntity, out EntityUid? item, _entManager) &&
-                     _entManager.TryGetComponent(item, out WieldableComponent? wieldable) && !wieldable.Wielded;
+        if (!blackboard.TryGetValue<EntityUid>(NPCBlackboard.Owner, out var owner, _entManager) ||
+            !blackboard.TryGetValue<string>(NPCBlackboard.ActiveHand, out var activeHand, _entManager))
+            return false ^ Invert;
+
+        var handsSystem = _entManager.System<HandsSystem>();
+        if (!handsSystem.TryGetHeldItem(owner, activeHand, out var item))
+            return false ^ Invert;
+
+        var result = _entManager.TryGetComponent(item, out WieldableComponent? wieldable) && !wieldable.Wielded;
 
         return result ^ Invert;
     }

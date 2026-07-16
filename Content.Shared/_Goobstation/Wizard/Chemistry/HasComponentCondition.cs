@@ -1,44 +1,33 @@
-// SPDX-FileCopyrightText: 2025 Aiden <28298836+Aidenkrz@users.noreply.github.com>
-// SPDX-FileCopyrightText: 2025 Aviu00 <93730715+Aviu00@users.noreply.github.com>
-// SPDX-FileCopyrightText: 2025 Misandry <mary@thughunt.ing>
-// SPDX-FileCopyrightText: 2025 gus <august.eymann@gmail.com>
-//
-// SPDX-License-Identifier: AGPL-3.0-or-later
-
-using Content.Shared.EntityEffects;
+using Content.Shared.EntityConditions;
 using Content.Shared.Mind;
-using JetBrains.Annotations;
 using Robust.Shared.Prototypes;
 
 namespace Content.Shared._Goobstation.Wizard.Chemistry;
 
-[UsedImplicitly]
-public sealed partial class HasComponentCondition : EntityEffectCondition
+public sealed partial class HasComponentCondition : EntityCondition
 {
-    [DataField(required: true)]
-    public HashSet<string> Components = new();
+    [DataField(required: true)] public HashSet<string> Components = new();
+    [DataField] public LocId? GuidebookComponentName;
+    [DataField] public bool Invert;
+    [DataField] public bool CheckMind;
 
-    [DataField]
-    public LocId? GuidebookComponentName;
-
-    [DataField]
-    public bool Invert;
-
-    [DataField]
-    public bool CheckMind;
-
-    public override bool Condition(EntityEffectBaseArgs args)
+    public override bool RaiseEvent(EntityUid target, IEntityConditionRaiser raiser)
     {
         EntityUid? mind = null;
-        if (CheckMind && args.EntityManager.System<SharedMindSystem>().TryGetMind(args.TargetEntity, out var mindId, out _))
-            mind = mindId;
+        if (CheckMind)
+        {
+            var mindSystem = IoCManager.Resolve<IEntityManager>().System<SharedMindSystem>();
+            if (mindSystem != null && mindSystem.TryGetMind(target, out var mindId, out _))
+                mind = mindId;
+        }
 
         var hasComp = false;
+        var entMan = IoCManager.Resolve<IEntityManager>();
         foreach (var component in Components)
         {
-            var comp = args.EntityManager.ComponentFactory.GetRegistration(component).Type;
-            hasComp = args.EntityManager.HasComponent(args.TargetEntity, comp) ||
-                      args.EntityManager.HasComponent(mind, comp);
+            var comp = entMan.ComponentFactory.GetRegistration(component).Type;
+            hasComp = entMan.HasComponent(target, comp) ||
+                      (mind != null && entMan.HasComponent(mind.Value, comp));
 
             if (hasComp)
                 break;
@@ -47,7 +36,7 @@ public sealed partial class HasComponentCondition : EntityEffectCondition
         return hasComp ^ Invert;
     }
 
-    public override string GuidebookExplanation(IPrototypeManager prototype)
+    public override string EntityConditionGuidebookText(IPrototypeManager prototype)
     {
         if (GuidebookComponentName == null)
             return string.Empty;

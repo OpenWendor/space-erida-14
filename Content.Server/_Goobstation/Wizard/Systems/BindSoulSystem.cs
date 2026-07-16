@@ -11,8 +11,8 @@ using Content.Server.Clothing.Systems;
 using Content.Server.Destructible;
 using Content.Server.Destructible.Thresholds;
 using Content.Server.Destructible.Thresholds.Behaviors;
-using Content.Server.Destructible.Thresholds.Triggers;
-using Content.Server.IdentityManagement;
+using Content.Shared.Destructible;
+using Content.Shared.Destructible.Thresholds.Triggers;
 using Content.Server.Respawn;
 using Content.Shared._Goobstation.Wizard;
 using Content.Shared._Goobstation.Wizard.BindSoul;
@@ -24,12 +24,12 @@ using Robust.Shared.GameObjects.Components.Localization;
 
 namespace Content.Server._Goobstation.Wizard.Systems;
 
-public sealed class BindSoulSystem : SharedBindSoulSystem
+public sealed partial class BindSoulSystem : SharedBindSoulSystem
 {
-    [Dependency] private readonly SpecialRespawnSystem _respawn = default!;
-    [Dependency] private readonly WizardRuleSystem _wizard = default!;
-    [Dependency] private readonly IdentitySystem _identity = default!;
-    [Dependency] private readonly OutfitSystem _outfit = default!;
+    [Dependency] private SpecialRespawnSystem _respawn = default!;
+    [Dependency] private WizardRuleSystem _wizard = default!;
+    [Dependency] private IdentitySystem _identity = default!;
+    [Dependency] private OutfitSystem _outfit = default!;
 
     public override void Resurrect(EntityUid mind,
         EntityUid phylactery,
@@ -51,7 +51,7 @@ public sealed class BindSoulSystem : SharedBindSoulSystem
         if (soulBound.Name != string.Empty)
             Meta.SetEntityName(ent, soulBound.Name);
 
-        if (TryComp(ent, out HumanoidAppearanceComponent? humanoid))
+            if (TryComp(ent, out HumanoidProfileComponent? humanoid))
         {
             if (soulBound.Age != null)
                 humanoid.Age = soulBound.Age.Value;
@@ -94,7 +94,7 @@ public sealed class BindSoulSystem : SharedBindSoulSystem
         if (itemXform.GridUid == grid.Value)
             return true;
 
-        if (!_respawn.TryFindRandomTile(grid.Value, map.Value, 10, out var coords, false))
+        if (!_respawn.TryFindRandomTile(grid.Value, map.Value, 10, out var coords))
             return false;
 
         if (Container.TryGetOuterContainer(item, itemXform, out var container))

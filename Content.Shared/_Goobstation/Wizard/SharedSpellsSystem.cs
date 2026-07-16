@@ -14,10 +14,7 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Numerics;
-using Content.Goobstation.Common.Bingle;
-using Content.Goobstation.Common.Religion;
 using Content.Shared._DV.Carrying;
-using Content.Shared._EinsteinEngines.Silicon.Components;
 using Content.Shared._Goobstation.Wizard.BindSoul;
 using Content.Shared._Goobstation.Wizard.Chuuni;
 using Content.Shared._Goobstation.Wizard.Components;
@@ -29,23 +26,22 @@ using Content.Shared._Goobstation.Wizard.SpellCards;
 using Content.Shared._Goobstation.Wizard.Teleport;
 using Content.Shared._Goobstation.Wizard.TeslaBlast;
 using Content.Shared._Goobstation.Wizard.Traps;
-using Content.Shared._Shitmed.Targeting;
 using Content.Shared.Abilities.Mime;
 using Content.Shared.Access.Components;
 using Content.Shared.Actions;
-using Content.Shared.Body.Components;
-using Content.Shared.Body.Part;
-using Content.Shared.Body.Systems;
 using Content.Shared.Clothing.Components;
 using Content.Shared.Clumsy;
 using Content.Shared.Cluwne;
 using Content.Shared.Damage;
+using Content.Shared.Damage.Components;
+using Content.Shared.Damage.Systems;
+using Content.Shared.Body;
 using Content.Shared.Examine;
 using Content.Shared.Eye.Blinding.Components;
-using Content.Goobstation.Maths.FixedPoint;
+using Content.Shared.FixedPoint;
 using Content.Shared._Lavaland.Movement;
 using Content.Shared.Ghost;
-using Content.Shared.Gibbing.Events;
+using Content.Shared.Gibbing;
 using Content.Shared.Hands.Components;
 using Content.Shared.Hands.EntitySystems;
 using Content.Shared.IdentityManagement;
@@ -101,52 +97,52 @@ using Content.Shared.Charges.Systems;
 
 namespace Content.Shared._Goobstation.Wizard;
 
-public abstract class SharedSpellsSystem : EntitySystem
+public abstract partial class  SharedSpellsSystem : EntitySystem
 {
     #region Dependencies
 
-    [Dependency] protected readonly IGameTiming Timing = default!;
-    [Dependency] protected readonly IRobustRandom Random = default!;
-    [Dependency] protected readonly IMapManager MapManager = default!;
-    [Dependency] protected readonly IPrototypeManager ProtoMan = default!;
-    [Dependency] protected readonly SharedTransformSystem TransformSystem = default!;
-    [Dependency] protected readonly EntityLookupSystem Lookup = default!;
-    [Dependency] protected readonly SharedMapSystem Map = default!;
-    [Dependency] protected readonly SharedStunSystem Stun = default!;
-    [Dependency] protected readonly SharedPhysicsSystem Physics = default!;
-    [Dependency] protected readonly SharedMindSystem Mind = default!;
-    [Dependency] protected readonly SharedContainerSystem Container = default!;
-    [Dependency] protected readonly SharedHandsSystem Hands = default!;
-    [Dependency] protected readonly MetaDataSystem Meta = default!;
-    [Dependency] protected readonly SharedBodySystem Body = default!;
-    [Dependency] protected readonly NpcFactionSystem Faction = default!;
-    [Dependency] protected readonly SharedRoleSystem Role = default!;
-    [Dependency] protected readonly DamageableSystem Damageable = default!;
-    [Dependency] protected readonly GrammarSystem Grammar = default!;
-    [Dependency] protected readonly SharedAudioSystem Audio = default!;
-    [Dependency] protected readonly ActionContainerSystem ActionContainer = default!;
-    [Dependency] protected readonly TagSystem Tag = default!;
-    [Dependency] protected readonly SharedActionsSystem Actions = default!;
-    [Dependency] private   readonly INetManager _net = default!;
-    [Dependency] private   readonly StatusEffectsSystem _statusEffects = default!;
-    [Dependency] private   readonly InventorySystem _inventory = default!;
-    [Dependency] private   readonly SharedJitteringSystem _jitter = default!;
-    [Dependency] private   readonly SharedStutteringSystem _stutter = default!;
-    [Dependency] private   readonly SharedMagicSystem _magic = default!;
-    [Dependency] private   readonly SharedPopupSystem _popup = default!;
-    [Dependency] private   readonly SharedGunSystem _gunSystem = default!;
-    [Dependency] private   readonly MobStateSystem _mobState = default!;
-    [Dependency] private   readonly EntityWhitelistSystem _whitelist = default!;
-    [Dependency] private   readonly SharedBindSoulSystem _bindSoul = default!;
-    [Dependency] private   readonly SharedTeslaBlastSystem _teslaBlast = default!;
-    [Dependency] private   readonly ExamineSystemShared _examine = default!;
-    [Dependency] private   readonly ConfirmableActionSystem _confirmableAction = default!;
-    [Dependency] private   readonly SharedWizardTeleportSystem _teleport = default!;
-    [Dependency] private   readonly PullingSystem _pulling = default!;
-    [Dependency] private   readonly MobThresholdSystem _threshold = default!;
-    [Dependency] private   readonly TurfSystem _turf = default!;
-    [Dependency] private   readonly SharedProjectileSystem _projectile = default!;
-    [Dependency] private   readonly SharedChargesSystem _charges = default!;
+    [Dependency] protected IGameTiming Timing = default!;
+    [Dependency] protected IRobustRandom Random = default!;
+    [Dependency] protected IMapManager MapManager = default!;
+    [Dependency] protected IPrototypeManager ProtoMan = default!;
+    [Dependency] protected SharedTransformSystem TransformSystem = default!;
+    [Dependency] protected EntityLookupSystem Lookup = default!;
+    [Dependency] protected SharedMapSystem Map = default!;
+    [Dependency] protected SharedStunSystem Stun = default!;
+    [Dependency] protected SharedPhysicsSystem Physics = default!;
+    [Dependency] protected SharedMindSystem Mind = default!;
+    [Dependency] protected SharedContainerSystem Container = default!;
+    [Dependency] protected SharedHandsSystem Hands = default!;
+    [Dependency] protected MetaDataSystem Meta = default!;
+    [Dependency] protected GibbingSystem Gibbing = default!;
+    [Dependency] protected NpcFactionSystem Faction = default!;
+    [Dependency] protected SharedRoleSystem Role = default!;
+    [Dependency] protected DamageableSystem Damageable = default!;
+    [Dependency] protected GrammarSystem Grammar = default!;
+    [Dependency] protected SharedAudioSystem Audio = default!;
+    [Dependency] protected ActionContainerSystem ActionContainer = default!;
+    [Dependency] protected TagSystem Tag = default!;
+    [Dependency] protected SharedActionsSystem Actions = default!;
+    [Dependency] private   INetManager _net = default!;
+    [Dependency] private   StatusEffectsSystem _statusEffects = default!;
+    [Dependency] private   InventorySystem _inventory = default!;
+    [Dependency] private   SharedJitteringSystem _jitter = default!;
+    [Dependency] private   SharedStutteringSystem _stutter = default!;
+    [Dependency] private   SharedMagicSystem _magic = default!;
+    [Dependency] private   SharedPopupSystem _popup = default!;
+    [Dependency] private   SharedGunSystem _gunSystem = default!;
+    [Dependency] private   MobStateSystem _mobState = default!;
+    [Dependency] private   EntityWhitelistSystem _whitelist = default!;
+    [Dependency] private   SharedBindSoulSystem _bindSoul = default!;
+    [Dependency] private   SharedTeslaBlastSystem _teslaBlast = default!;
+    [Dependency] private   ExamineSystemShared _examine = default!;
+    [Dependency] private   ConfirmableActionSystem _confirmableAction = default!;
+    [Dependency] private   SharedWizardTeleportSystem _teleport = default!;
+    [Dependency] private   PullingSystem _pulling = default!;
+    [Dependency] private   MobThresholdSystem _threshold = default!;
+    [Dependency] private   TurfSystem _turf = default!;
+    [Dependency] private   SharedProjectileSystem _projectile = default!;
+    [Dependency] private   SharedChargesSystem _charges = default!;
 
     #endregion
 
@@ -247,7 +243,7 @@ public abstract class SharedSpellsSystem : EntitySystem
         {
             Stun.TryUpdateParalyzeDuration(ev.Target, ev.ParalyzeDuration);
             _jitter.DoJitter(ev.Target, ev.JitterStutterDuration, true, status: status);
-            _stutter.DoStutter(ev.Target, ev.JitterStutterDuration, true, status);
+            _jitter.DoJitter(ev.Target, ev.JitterStutterDuration, true, status: status);
         }
 
         var targetWizard = HasComp<WizardComponent>(ev.Target) || HasComp<ApprenticeComponent>(ev.Target);
@@ -394,7 +390,7 @@ public abstract class SharedSpellsSystem : EntitySystem
         var coords = TransformSystem.GetMapCoordinates(ev.Target);
 
         if (Timing.IsFirstTimePredicted)
-            Body.GibBody(ev.Target, contents: GibContentsOption.Gib);
+            Gibbing.Gib(ev.Target, true);
 
         ExplodeCorpse(ev);
 
@@ -402,13 +398,12 @@ public abstract class SharedSpellsSystem : EntitySystem
         var ghostQuery = GetEntityQuery<GhostComponent>();
         var spectralQuery = GetEntityQuery<SpectralComponent>();
         var statusQuery = GetEntityQuery<StatusEffectsComponent>();
-        var bodyPartQuery = GetEntityQuery<BodyPartComponent>();
         foreach (var (target, damageable) in targets)
         {
             if (target == ev.Performer || target == ev.Target)
                 continue;
 
-            if (ghostQuery.HasComp(target) || spectralQuery.HasComp(target) || bodyPartQuery.HasComp(target))
+            if (ghostQuery.HasComp(target) || spectralQuery.HasComp(target))
                 continue;
 
             var range = (TransformSystem.GetMapCoordinates(target).Position - coords.Position).Length();
@@ -417,17 +412,15 @@ public abstract class SharedSpellsSystem : EntitySystem
 
             Damageable.TryChangeDamage(target,
                 ev.Damage / range,
-                damageable: damageable,
-                origin: ev.Performer,
-                targetPart: TargetBodyPart.All);
+                origin: ev.Performer);
 
             if (!statusQuery.TryComp(target, out var status))
                 continue;
 
-            if (HasComp<SiliconComponent>(target) || HasComp<BorgChassisComponent>(target))
+            if (HasComp<BorgChassisComponent>(target))
                 Stun.TryUpdateParalyzeDuration(target, ev.SiliconStunTime / range);
             else
-                Stun.KnockdownOrStun(target, ev.KnockdownTime / range, true);
+                Stun.TryKnockdown(target, ev.KnockdownTime / range, force: true);
         }
 
         ev.Handled = true;
@@ -525,7 +518,7 @@ public abstract class SharedSpellsSystem : EntitySystem
         if (!_magic.PassesSpellPrerequisites(ev.Action, ev.Performer))
             return;
 
-        if (HasComp<SiliconComponent>(ev.Performer) || HasComp<BorgChassisComponent>(ev.Performer))
+        if (HasComp<BorgChassisComponent>(ev.Performer))
         {
             Popup(ev.Performer, "spell-fail-bind-soul-silicon");
             return;
@@ -566,7 +559,7 @@ public abstract class SharedSpellsSystem : EntitySystem
         if (ev.Handled || !_magic.PassesSpellPrerequisites(ev.Action, ev.Performer))
             return;
 
-        if (HasComp<SiliconComponent>(ev.Performer) || HasComp<BorgChassisComponent>(ev.Performer))
+        if (HasComp<BorgChassisComponent>(ev.Performer))
         {
             Popup(ev.Performer, "spell-fail-mutate-silicon");
             return;
@@ -756,7 +749,7 @@ public abstract class SharedSpellsSystem : EntitySystem
             return;
         }
 
-        if (HasComp<BorgChassisComponent>(ev.Target) || HasComp<SiliconComponent>(ev.Target))
+        if (HasComp<BorgChassisComponent>(ev.Target))
         {
             Popup(ev.Performer, "spell-fail-target-silicon");
             return;
@@ -1097,11 +1090,11 @@ public abstract class SharedSpellsSystem : EntitySystem
 
             Popup(ev.Performer, "spell-soul-tap-dead-message-user", PopupType.LargeCaution);
 
-            var dmg = Damageable.TryChangeDamage(ev.Performer,
+            Damageable.TryChangeDamage(ev.Performer,
                 new DamageSpecifier(ProtoMan.Index(ev.KillDamage), 666),
                 true);
-            if ((dmg == null || dmg.GetTotal() < 1) && Timing.IsFirstTimePredicted)
-                Body.GibBody(ev.Performer, contents: GibContentsOption.Gib);
+            if (Timing.IsFirstTimePredicted)
+                Gibbing.Gib(ev.Performer, true);
         }
 
         if (_mobState.IsDead(ev.Performer))
@@ -1171,7 +1164,8 @@ public abstract class SharedSpellsSystem : EntitySystem
                     basicAmmoComp is { Count: not null, Capacity: not null } &&
                     basicAmmoComp.Count < basicAmmoComp.Capacity)
                 {
-                    _gunSystem.UpdateBasicEntityAmmoCount(item, basicAmmoComp.Capacity.Value, basicAmmoComp);
+                    basicAmmoComp.Count = basicAmmoComp.Capacity;
+                    Dirty(item, basicAmmoComp);
                     PopupCharged(item, ev.Performer);
                     break;
                 }
@@ -1337,13 +1331,11 @@ public abstract class SharedSpellsSystem : EntitySystem
         var managerQuery = GetEntityQuery<ContainerManagerComponent>();
         var xformQuery = GetEntityQuery<TransformComponent>();
         var bodyQuery = GetEntityQuery<BodyComponent>();
-        var bodyPartQuery = GetEntityQuery<BodyPartComponent>();
         var inventoryQuery = GetEntityQuery<InventoryComponent>();
         var handsQuery = GetEntityQuery<HandsComponent>();
-        var binglePitQuery = GetEntityQuery<BinglePitComponent>();
 
-        while (parent.IsValid() && !bodyQuery.HasComp(parent) && !bodyPartQuery.HasComp(parent) &&
-               !inventoryQuery.HasComp(parent) && !handsQuery.HasComp(parent) && !binglePitQuery.HasComp(parent))
+        while (parent.IsValid() && !bodyQuery.HasComp(parent) &&
+               !inventoryQuery.HasComp(parent) && !handsQuery.HasComp(parent))
         {
             if (((EntityManager.MetaQuery.GetComponent(child).Flags & MetaDataFlags.InContainer) ==
                  MetaDataFlags.InContainer) && managerQuery.TryGetComponent(parent, out var conManager) &&
@@ -1406,10 +1398,7 @@ public abstract class SharedSpellsSystem : EntitySystem
 
     private bool IsTouchSpellDenied(EntityUid target)
     {
-        var ev = new BeforeCastTouchSpellEvent(target);
-        RaiseLocalEvent(target, ev, true);
-
-        return ev.Cancelled;
+        return false;
     }
 
     private void SpawnHomingProjectile(EntProtoId proto,
@@ -1438,14 +1427,10 @@ public abstract class SharedSpellsSystem : EntitySystem
         if (target == null || target == user || checkMobState && !HasComp<MobStateComponent>(target))
             return;
 
-        _gunSystem.SetTarget(projectile, target, out var targeted, false);
-
         var homing = EnsureComp<HomingProjectileComponent>(projectile);
         homing.Target = target;
 
-        Entity<HomingProjectileComponent, TargetedProjectileComponent> ent = (projectile, homing, targeted);
-
-        Dirty(ent);
+        Dirty(projectile, homing);
     }
 
     protected (EntityCoordinates coords, MapCoordinates mapCoords, EntityCoordinates spawnCoords, Vector2 velocity)
@@ -1499,9 +1484,8 @@ public abstract class SharedSpellsSystem : EntitySystem
 
     private void MakeMime(EntityUid uid)
     {
-        var powers = EnsureComp<MimePowersComponent>(uid);
-        powers.CanBreakVow = false;
-        Dirty(uid, powers);
+        var mime = EnsureComp<MimePowersComponent>(uid);
+        Dirty(uid, mime);
     }
 
     #endregion
@@ -1553,16 +1537,16 @@ public abstract class SharedSpellsSystem : EntitySystem
 }
 
 [Serializable, NetSerializable]
-public sealed class StopTargetingEvent : EntityEventArgs;
+public sealed partial class  StopTargetingEvent : EntityEventArgs;
 
 [Serializable, NetSerializable]
-public sealed class ChargeSpellRaysEffectEvent(NetEntity uid) : EntityEventArgs
+public sealed partial class  ChargeSpellRaysEffectEvent(NetEntity uid) : EntityEventArgs
 {
     public NetEntity Uid = uid;
 }
 
 [Serializable, NetSerializable]
-public sealed class SetSwapSecondaryTarget(NetEntity action, NetEntity? target) : EntityEventArgs
+public sealed partial class  SetSwapSecondaryTarget(NetEntity action, NetEntity? target) : EntityEventArgs
 {
     public NetEntity Action = action;
 

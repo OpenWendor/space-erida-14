@@ -6,28 +6,22 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 using System.Linq;
-using Content.Shared._Shitmed.Targeting;
 using Content.Shared.Damage;
+using Content.Shared.Damage.Components;
+using Content.Shared.Damage.Systems;
 using Content.Shared.Examine;
-using Content.Goobstation.Maths.FixedPoint;
+using Content.Shared.FixedPoint;
 using Content.Shared.Mobs;
 using Content.Shared.Mobs.Components;
 using Content.Shared.Weapons.Melee.Events;
 using Robust.Shared.Map;
 using Robust.Shared.Prototypes;
-using Content.Shared._Shitmed.Damage;
-using Content.Shared._Shitmed.Medical.Surgery.Consciousness;
-using Content.Shared._Shitmed.Medical.Surgery.Consciousness.Components;
-using Content.Shared._Shitmed.Medical.Surgery.Consciousness.Systems;
-using Content.Shared._Shitmed.Medical.Surgery.Pain.Systems; // Shitmed Change
 
 namespace Content.Shared._Goobstation.Wizard.SanguineStrike;
 
-public abstract class SharedSanguineStrikeSystem : EntitySystem
+public abstract partial class  SharedSanguineStrikeSystem : EntitySystem
 {
-    [Dependency] private readonly DamageableSystem _damageable = default!;
-    [Dependency] private readonly PainSystem _pain = default!;
-    [Dependency] private readonly ConsciousnessSystem _consciousness = default!;
+    [Dependency] private DamageableSystem _damageable = default!;
 
     public override void Initialize()
     {
@@ -98,74 +92,21 @@ public abstract class SharedSanguineStrikeSystem : EntitySystem
     {
     }
 
-    public void LifeSteal(EntityUid uid, FixedPoint2 amount, DamageableComponent? damageable = null, ConsciousnessComponent? consciousness = null)
+    public void LifeSteal(EntityUid uid, FixedPoint2 amount, DamageableComponent? damageable = null)
     {
         if (!Resolve(uid, ref damageable, false))
             return;
 
-        if (Resolve(uid, ref consciousness, false))
-        {
-            if (consciousness.NerveSystem != default)
-            {
-                foreach (var painModifier in consciousness.NerveSystem.Comp.Modifiers)
-                {
-                    _pain.TryRemovePainModifier(consciousness.NerveSystem.Owner,
-                        painModifier.Key.Item1,
-                        painModifier.Key.Item2,
-                        consciousness.NerveSystem.Comp);
-                }
-
-                foreach (var painMultiplier in consciousness.NerveSystem.Comp.Multipliers)
-                {
-                    _pain.TryRemovePainMultiplier(consciousness.NerveSystem.Owner,
-                        painMultiplier.Key,
-                        consciousness.NerveSystem.Comp);
-                }
-
-
-                foreach (var nerve in consciousness.NerveSystem.Comp.Nerves)
-                {
-                    foreach (var painFeelsModifier in nerve.Value.PainFeelingModifiers)
-                    {
-                        _pain.TryRemovePainFeelsModifier(painFeelsModifier.Key.Item1,
-                            painFeelsModifier.Key.Item2,
-                            nerve.Key,
-                            nerve.Value);
-                    }
-                }
-            }
-
-            foreach (var multiplier in
-                     consciousness.Multipliers.Where(multiplier => multiplier.Value.Type == ConsciousnessModType.Pain))
-            {
-                _consciousness.RemoveConsciousnessMultiplier(uid, multiplier.Key.Item1, multiplier.Key.Item2, consciousness);
-            }
-
-            foreach (var modifier in
-                     consciousness.Modifiers.Where(modifier => modifier.Value.Type == ConsciousnessModType.Pain))
-            {
-                _consciousness.RemoveConsciousnessModifier(uid, modifier.Key.Item1, modifier.Key.Item2, consciousness);
-            }
-        }
-
-        var totalUserDamage = damageable.TotalDamage;
+        var totalUserDamage = _damageable.GetTotalDamage((uid, damageable));
         if (totalUserDamage <= FixedPoint2.Zero)
             return;
 
         DamageSpecifier toHeal;
         if (amount < totalUserDamage)
-            toHeal = damageable.Damage * amount / totalUserDamage;
+            toHeal = _damageable.GetAllDamage((uid, damageable)) * amount / totalUserDamage;
         else
-            toHeal = damageable.Damage;
+            toHeal = _damageable.GetAllDamage((uid, damageable));
 
-        _damageable.TryChangeDamage(uid,
-            -toHeal,
-            true,
-            false,
-            damageable,
-            null,
-            false,
-            targetPart: TargetBodyPart.All,
-            splitDamage: SplitDamageBehavior.SplitEnsureAll);
+        _damageable.TryChangeDamage(uid, -toHeal, true);
     }
 }

@@ -6,11 +6,11 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 using Content.Server._Goobstation.Wizard.Components;
-using Content.Server.Emp;
+using Content.Shared.Emp;
 
 namespace Content.Server._Goobstation.Wizard.Systems;
 
-public sealed class EmpImmuneSystem : EntitySystem
+public sealed partial class EmpImmuneSystem : EntitySystem
 {
     public override void Initialize()
     {
@@ -21,6 +21,6 @@ public sealed class EmpImmuneSystem : EntitySystem
 
     private void OnAttempt(Entity<EmpImmuneComponent> ent, ref EmpAttemptEvent args)
     {
-        args.Cancel();
+        args.Cancelled = true;
     }
 }

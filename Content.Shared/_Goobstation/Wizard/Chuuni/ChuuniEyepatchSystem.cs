@@ -7,8 +7,10 @@
 
 using Content.Shared.Clothing.EntitySystems;
 using Content.Shared.Damage;
+using Content.Shared.Damage.Components;
+using Content.Shared.Damage.Systems;
 using Content.Shared.Examine;
-using Content.Goobstation.Maths.FixedPoint;
+using Content.Shared.FixedPoint;
 using Content.Shared.Inventory;
 using Content.Shared.Magic.Components;
 using Content.Shared.Verbs;
@@ -18,12 +20,13 @@ using Robust.Shared.Utility;
 
 namespace Content.Shared._Goobstation.Wizard.Chuuni;
 
-public sealed class ChuuniEyepatchSystem : EntitySystem
+public sealed partial class  ChuuniEyepatchSystem : EntitySystem
 {
-    [Dependency] private readonly INetManager _net = default!;
-    [Dependency] private readonly IRobustRandom _random = default!;
-    [Dependency] private readonly SharedAppearanceSystem _appearance = default!;
-    [Dependency] private readonly ClothingSystem _clothing = default!;
+    [Dependency] private INetManager _net = default!;
+    [Dependency] private IRobustRandom _random = default!;
+    [Dependency] private SharedAppearanceSystem _appearance = default!;
+    [Dependency] private ClothingSystem _clothing = default!;
+    [Dependency] private DamageableSystem _damageable = default!;
 
     public override void Initialize()
     {
@@ -71,16 +74,18 @@ public sealed class ChuuniEyepatchSystem : EntitySystem
         if (!TryComp(performer, out DamageableComponent? damageable))
             return;
 
-        if (!ent.Comp.CanHeal || damageable.TotalDamage <= FixedPoint2.Zero)
+        var totalDamage = _damageable.GetTotalDamage((performer, damageable));
+        if (!ent.Comp.CanHeal || totalDamage <= FixedPoint2.Zero)
             return;
 
         ent.Comp.Accumulator = 0f;
         Dirty(ent);
 
-        if (ent.Comp.HealAmount < damageable.TotalDamage)
-            args.Args.ToHeal = damageable.Damage * ent.Comp.HealAmount / damageable.TotalDamage;
+        var allDamage = _damageable.GetAllDamage((performer, damageable));
+        if (ent.Comp.HealAmount < totalDamage)
+            args.Args.ToHeal = allDamage * ent.Comp.HealAmount / totalDamage;
         else
-            args.Args.ToHeal = damageable.Damage;
+            args.Args.ToHeal = allDamage;
     }
 
     private void OnExamine(Entity<ChuuniEyepatchComponent> ent, ref ExaminedEvent args)
@@ -128,7 +133,7 @@ public sealed class ChuuniEyepatchSystem : EntitySystem
     }
 }
 
-public sealed class GetSpellInvocationEvent(MagicSchool school, EntityUid performer)
+public sealed partial class  GetSpellInvocationEvent(MagicSchool school, EntityUid performer)
     : EntityEventArgs, IInventoryRelayEvent
 {
     public SlotFlags TargetSlots => SlotFlags.EYES;
@@ -142,7 +147,7 @@ public sealed class GetSpellInvocationEvent(MagicSchool school, EntityUid perfor
     public LocId? Invocation;
 }
 
-public sealed class GetMessageColorOverrideEvent : EntityEventArgs, IInventoryRelayEvent
+public sealed partial class  GetMessageColorOverrideEvent : EntityEventArgs, IInventoryRelayEvent
 {
     public SlotFlags TargetSlots => SlotFlags.EYES;
 

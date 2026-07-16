@@ -7,9 +7,11 @@
 
 using System.Linq;
 using Content.Server._Goobstation.Wizard.Components;
-using Content.Server.Temperature.Components;
+using Content.Shared.Damage.Prototypes;
+using Content.Shared.Temperature.Components;
 using Content.Server.Temperature.Systems;
 using Content.Shared._Goobstation.Wizard.Traps;
+using Robust.Shared.Prototypes;
 using Content.Shared.ActionBlocker;
 using Content.Shared.Damage;
 using Content.Shared.Damage.Events;
@@ -25,14 +27,14 @@ using Robust.Shared.Random;
 
 namespace Content.Server._Goobstation.Wizard.Systems;
 
-public sealed class IceCubeSystem : SharedIceCubeSystem
+public sealed partial class IceCubeSystem : SharedIceCubeSystem
 {
-    [Dependency] private readonly IRobustRandom _random = default!;
+    [Dependency] private IRobustRandom _random = default!;
 
-    [Dependency] private readonly FixtureSystem _fixtures = default!;
-    [Dependency] private readonly ActionBlockerSystem _blocker = default!;
-    [Dependency] private readonly TemperatureSystem _temperature = default!;
-    [Dependency] private readonly EntityWhitelistSystem _whitelist = default!;
+    [Dependency] private FixtureSystem _fixtures = default!;
+    [Dependency] private ActionBlockerSystem _blocker = default!;
+    [Dependency] private TemperatureSystem _temperature = default!;
+    [Dependency] private EntityWhitelistSystem _whitelist = default!;
 
     private const string IceCubeFixture = "ice-cube-fixture";
 
@@ -85,7 +87,9 @@ public sealed class IceCubeSystem : SharedIceCubeSystem
                 temperature);
         }
 
-        var realDamage = args.DamageDelta.DamageDict.Where(kvp => kvp.Key is "Blunt" or "Slash" or "Piercing" or "Heat")
+        var damageTypes = new HashSet<ProtoId<DamageTypePrototype>> { "Blunt", "Slash", "Piercing", "Heat" };
+        var realDamage = args.DamageDelta.DamageDict
+            .Where(kvp => damageTypes.Contains(kvp.Key))
             .Sum(kvp => kvp.Value.Float());
 
         if (realDamage <= 0f)
